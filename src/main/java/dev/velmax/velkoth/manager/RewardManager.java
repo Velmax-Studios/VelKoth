@@ -22,7 +22,7 @@ public final class RewardManager {
      * Executed on the main thread since some rewards (commands, items) require it.
      */
     public void grantRewards(Player player, List<Reward> rewards) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        player.getScheduler().run(plugin, task -> {
             for (Reward reward : rewards) {
                 try {
                     reward.grant(player);
@@ -31,6 +31,6 @@ public final class RewardManager {
                             + "' to " + player.getName() + ": " + e.getMessage());
                 }
             }
-        });
+        }, null);
     }
 }

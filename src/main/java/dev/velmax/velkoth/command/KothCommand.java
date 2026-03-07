@@ -276,18 +276,16 @@ public final class KothCommand {
     private void handleStats(Player player) {
 
         plugin.getStatsManager().getStats(player.getUniqueId()).thenAccept(stats -> {
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                sendPrefixed(player, "<gold><bold>Your KoTH Stats</bold></gold>");
-                sendPrefixed(player, " <dark_gray>•</dark_gray> <gray>Total Wins:</gray> <white>" + stats.totalWins());
+            sendPrefixed(player, "<gold><bold>Your KoTH Stats</bold></gold>");
+            sendPrefixed(player, " <dark_gray>•</dark_gray> <gray>Total Wins:</gray> <white>" + stats.totalWins());
 
-                plugin.getStatsManager().getDailyWins(player.getUniqueId()).thenAccept(
-                        daily -> plugin.getServer().getScheduler().runTask(plugin, () -> sendPrefixed(player,
-                                " <dark_gray>•</dark_gray> <gray>Today:</gray> <white>" + daily)));
+            plugin.getStatsManager().getDailyWins(player.getUniqueId()).thenAccept(
+                    daily -> sendPrefixed(player,
+                            " <dark_gray>•</dark_gray> <gray>Today:</gray> <white>" + daily));
 
-                plugin.getStatsManager().getWeeklyWins(player.getUniqueId()).thenAccept(
-                        weekly -> plugin.getServer().getScheduler().runTask(plugin, () -> sendPrefixed(player,
-                                " <dark_gray>•</dark_gray> <gray>This Week:</gray> <white>" + weekly)));
-            });
+            plugin.getStatsManager().getWeeklyWins(player.getUniqueId()).thenAccept(
+                    weekly -> sendPrefixed(player,
+                            " <dark_gray>•</dark_gray> <gray>This Week:</gray> <white>" + weekly));
         });
     }
 

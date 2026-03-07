@@ -5,7 +5,7 @@ import dev.velmax.velkoth.api.event.*;
 import dev.velmax.velkoth.arena.Arena;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -20,7 +20,7 @@ public final class CaptureManager {
 
     private final VelKothPlugin plugin;
     private final Map<String, CaptureSession> sessions = new ConcurrentHashMap<>();
-    private @Nullable BukkitTask tickTask;
+    private @Nullable ScheduledTask tickTask;
 
     public CaptureManager(VelKothPlugin plugin) {
         this.plugin = plugin;
@@ -32,7 +32,7 @@ public final class CaptureManager {
     public void startTickLoop() {
         if (tickTask != null)
             return;
-        tickTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
+        tickTask = plugin.getServer().getGlobalRegionScheduler().runAtFixedRate(plugin, task -> tick(), 20L, 20L);
     }
 
     /**

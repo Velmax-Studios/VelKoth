@@ -52,7 +52,7 @@ public final class SchedulerManager {
 
         executor.scheduleAtFixedRate(() -> {
             // Must run on main thread
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
+            plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> {
                 String arenaId = entry.arenaId();
                 if ("random".equalsIgnoreCase(arenaId)) {
                     startRandomArena();
