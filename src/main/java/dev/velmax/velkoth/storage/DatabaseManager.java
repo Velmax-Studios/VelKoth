@@ -1,0 +1,192 @@
+package dev.velmax.velkoth.storage;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import dev.velmax.velkoth.config.PluginConfig;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
+
+/**
+ * Manages database connections and queries using HikariCP.
+ * Supports SQLite (default) and MySQL.
+ */
+public final class DatabaseManager {
+
+    private final JavaPlugin plugin;
+    private HikariDataSource dataSource;
+
+    public DatabaseManager(JavaPlugin plugin, PluginConfig.DatabaseConfig config) {
+        this.plugin = plugin;
+        setupDataSource(config);
+        createTables();
+    }
+
+    private void setupDataSource(PluginConfig.DatabaseConfig config) {
+        HikariConfig hikariConfig = new HikariConfig();
+
+        if (config.getType().equalsIgnoreCase("MYSQL")) {
+            hikariConfig.setJdbcUrl(
+                    "jdbc:mysql://" + config.getHost() + ":" + config.getPort() + "/" + config.getDatabase());
+            hikariConfig.setUsername(config.getUsername());
+            hikariConfig.setPassword(config.getPassword());
+            hikariConfig.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        } else {
+            File dbFile = new File(plugin.getDataFolder(), "data.db");
+            hikariConfig.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
+            hikariConfig.setDriverClassName("org.sqlite.JDBC");
+        }
+
+        hikariConfig.setMaximumPoolSize(config.getPoolSize());
+        hikariConfig.setMinimumIdle(1);
+        hikariConfig.setIdleTimeout(30000);
+        hikariConfig.setMaxLifetime(600000);
+        hikariConfig.setConnectionTimeout(10000);
+        hikariConfig.setPoolName("VelKoth-Pool");
+
+        this.dataSource = new HikariDataSource(hikariConfig);
+    }
+
+    private void createTables() {
+        try (Connection conn = dataSource.getConnection();
+                var stmt = conn.createStatement()) {
+            stmt.executeUpdate("""
+                        CREATE TABLE IF NOT EXISTS koth_stats (
+                            uuid VARCHAR(36) PRIMARY KEY,
+                            player_name VARCHAR(16) NOT NULL,
+                            total_wins INT DEFAULT 0,
+                            last_win_timestamp BIGINT DEFAULT 0
+                        )
+                    """);
+            stmt.executeUpdate("""
+                        CREATE TABLE IF NOT EXISTS koth_win_log (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            uuid VARCHAR(36) NOT NULL,
+                            arena_id VARCHAR(64) NOT NULL,
+                            win_timestamp BIGINT NOT NULL
+                        )
+                    """);
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to create database tables", e);
+        }
+    }
+
+    /**
+     * Record a win for a player (async).
+     */
+    public CompletableFuture<Void> recordWin(UUID uuid, String playerName, String arenaId) {
+        return CompletableFuture.runAsync(() -> {
+            long now = System.currentTimeMillis();
+            try (Connection conn = dataSource.getConnection()) {
+                // Upsert stats
+                try (PreparedStatement ps = conn.prepareStatement("""
+                            INSERT INTO koth_stats (uuid, player_name, total_wins, last_win_timestamp)
+                            VALUES (?, ?, 1, ?)
+                            ON CONFLICT(uuid) DO UPDATE SET
+                                player_name = excluded.player_name,
+                                total_wins = total_wins + 1,
+                                last_win_timestamp = excluded.last_win_timestamp
+                        """)) {
+                    ps.setString(1, uuid.toString());
+                    ps.setString(2, playerName);
+                    ps.setLong(3, now);
+                    ps.executeUpdate();
+                }
+                // Log the win
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO koth_win_log (uuid, arena_id, win_timestamp) VALUES (?, ?, ?)")) {
+                    ps.setString(1, uuid.toString());
+                    ps.setString(2, arenaId);
+                    ps.setLong(3, now);
+                    ps.executeUpdate();
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "Failed to record win for " + playerName, e);
+            }
+        });
+    }
+
+    /**
+     * Get stats for a player (async).
+     */
+    public CompletableFuture<PlayerStats> getStats(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                    PreparedStatement ps = conn.prepareStatement(
+                            "SELECT uuid, player_name, total_wins, last_win_timestamp FROM koth_stats WHERE uuid = ?")) {
+                ps.setString(1, uuid.toString());
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    return new PlayerStats(
+                            UUID.fromString(rs.getString("uuid")),
+                            rs.getString("player_name"),
+                            rs.getInt("total_wins"),
+                            rs.getLong("last_win_timestamp"));
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "Failed to get stats for " + uuid, e);
+            }
+            return PlayerStats.empty(uuid, "Unknown");
+        });
+    }
+
+    /**
+     * Get the top N players by wins (async).
+     */
+    public CompletableFuture<List<PlayerStats>> getLeaderboard(int limit) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<PlayerStats> list = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                    PreparedStatement ps = conn.prepareStatement(
+                            "SELECT uuid, player_name, total_wins, last_win_timestamp FROM koth_stats ORDER BY total_wins DESC LIMIT ?")) {
+                ps.setInt(1, limit);
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    list.add(new PlayerStats(
+                            UUID.fromString(rs.getString("uuid")),
+                            rs.getString("player_name"),
+                            rs.getInt("total_wins"),
+                            rs.getLong("last_win_timestamp")));
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "Failed to get leaderboard", e);
+            }
+            return list;
+        });
+    }
+
+    /**
+     * Get wins within a time window (for daily/weekly queries).
+     */
+    public CompletableFuture<Integer> getWinsSince(UUID uuid, long sinceTimestamp) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                    PreparedStatement ps = conn.prepareStatement(
+                            "SELECT COUNT(*) FROM koth_win_log WHERE uuid = ? AND win_timestamp >= ?")) {
+                ps.setString(1, uuid.toString());
+                ps.setLong(2, sinceTimestamp);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next())
+                    return rs.getInt(1);
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "Failed to get wins since " + sinceTimestamp, e);
+            }
+            return 0;
+        });
+    }
+
+    public void shutdown() {
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+        }
+    }
+}

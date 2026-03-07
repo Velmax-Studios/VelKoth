@@ -1,0 +1,19 @@
+name: VelKoth
+version: "${version}"
+main: dev.velmax.velkoth.VelKothPlugin
+description: "${description}"
+author: VelMax Studios
+api-version: "1.21"
+folia-supported: false
+
+softdepend:
+  - Vault
+  - PlaceholderAPI
+
+permissions:
+  velkoth.admin:
+    description: Full administrative access to VelKoth
+    default: op
+  velkoth.use:
+    description: Basic VelKoth usage
+    default: true

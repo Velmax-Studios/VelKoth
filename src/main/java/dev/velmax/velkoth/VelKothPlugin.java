@@ -1,0 +1,204 @@
+package dev.velmax.velkoth;
+
+import dev.velmax.velkoth.capture.CaptureManager;
+import dev.velmax.velkoth.command.KothCommand;
+import dev.velmax.velkoth.config.ArenaConfig;
+import dev.velmax.velkoth.config.MessagesConfig;
+import dev.velmax.velkoth.config.PluginConfig;
+import dev.velmax.velkoth.display.DisplayManager;
+import dev.velmax.velkoth.hook.KothPlaceholderExpansion;
+import dev.velmax.velkoth.hook.VaultHook;
+import dev.velmax.velkoth.listener.PlayerListener;
+import dev.velmax.velkoth.listener.WandListener;
+import dev.velmax.velkoth.manager.ArenaManager;
+import dev.velmax.velkoth.manager.RewardManager;
+import dev.velmax.velkoth.manager.StatsManager;
+import dev.velmax.velkoth.manager.WandManager;
+import dev.velmax.velkoth.scheduler.SchedulerManager;
+import dev.velmax.velkoth.storage.DatabaseManager;
+import eu.okaeri.configs.ConfigManager;
+import eu.okaeri.configs.yaml.snakeyaml.YamlSnakeYamlConfigurer;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+
+/**
+ * VelKoth — A modern, high-performance King of the Hill plugin.
+ *
+ * @author VelMax Studios
+ */
+public final class VelKothPlugin extends JavaPlugin {
+
+    private static VelKothPlugin instance;
+
+    // Configs
+    private PluginConfig pluginConfig;
+    private MessagesConfig messagesConfig;
+    private ArenaConfig arenaConfig;
+
+    // Managers
+    private DatabaseManager databaseManager;
+    private ArenaManager arenaManager;
+    private CaptureManager captureManager;
+    private DisplayManager displayManager;
+    private RewardManager rewardManager;
+    private StatsManager statsManager;
+    private WandManager wandManager;
+    private SchedulerManager schedulerManager;
+
+    @Override
+    public void onEnable() {
+        instance = this;
+        long start = System.currentTimeMillis();
+
+        // 1. Configs
+        loadConfigs();
+
+        // 2. Database
+        databaseManager = new DatabaseManager(this, pluginConfig.getDatabase());
+
+        // 3. Managers
+        arenaManager = new ArenaManager(this);
+        captureManager = new CaptureManager(this);
+        displayManager = new DisplayManager(this);
+        rewardManager = new RewardManager(this);
+        statsManager = new StatsManager(databaseManager);
+        wandManager = new WandManager();
+        schedulerManager = new SchedulerManager(this);
+
+        // 4. Load arenas from config
+        arenaManager.loadArenas();
+
+        // 5. Load schedule
+        schedulerManager.loadSchedule();
+
+        // 6. Register commands
+        new KothCommand(this);
+
+        // 7. Register listeners
+        var pm = Bukkit.getPluginManager();
+        pm.registerEvents(new WandListener(this), this);
+        pm.registerEvents(new PlayerListener(this), this);
+
+        // 8. Hooks
+        VaultHook.setup(getLogger());
+
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new KothPlaceholderExpansion(this).register();
+            getLogger().info("PlaceholderAPI expansion registered.");
+        }
+
+        long elapsed = System.currentTimeMillis() - start;
+        getLogger()
+                .info("VelKoth enabled in " + elapsed + "ms — " + arenaManager.getArenas().size() + " arenas loaded.");
+    }
+
+    @Override
+    public void onDisable() {
+        // Graceful shutdown in reverse order
+        if (captureManager != null)
+            captureManager.shutdown();
+        if (displayManager != null)
+            displayManager.cleanup();
+        if (schedulerManager != null)
+            schedulerManager.shutdown();
+        if (arenaManager != null)
+            arenaManager.saveArenas();
+        if (databaseManager != null)
+            databaseManager.shutdown();
+
+        instance = null;
+        getLogger().info("VelKoth disabled.");
+    }
+
+    // ── Config Loading ──
+
+    private void loadConfigs() {
+        pluginConfig = ConfigManager.create(PluginConfig.class, cfg -> {
+            cfg.withConfigurer(new YamlSnakeYamlConfigurer());
+            cfg.withBindFile(new File(getDataFolder(), "config.yml"));
+            cfg.withRemoveOrphans(false);
+            cfg.saveDefaults();
+            cfg.load(true);
+        });
+
+        messagesConfig = ConfigManager.create(MessagesConfig.class, cfg -> {
+            cfg.withConfigurer(new YamlSnakeYamlConfigurer());
+            cfg.withBindFile(new File(getDataFolder(), "messages.yml"));
+            cfg.withRemoveOrphans(false);
+            cfg.saveDefaults();
+            cfg.load(true);
+        });
+
+        arenaConfig = ConfigManager.create(ArenaConfig.class, cfg -> {
+            cfg.withConfigurer(new YamlSnakeYamlConfigurer());
+            cfg.withBindFile(new File(getDataFolder(), "arenas.yml"));
+            cfg.withRemoveOrphans(false);
+            cfg.saveDefaults();
+            cfg.load(true);
+        });
+    }
+
+    /**
+     * Reload all configuration files and re-initialize dependent systems.
+     */
+    public void reloadAllConfigs() {
+        pluginConfig.load(true);
+        messagesConfig.load(true);
+        arenaConfig.load(true);
+        arenaManager.loadArenas();
+        schedulerManager.loadSchedule();
+        getLogger().info("All configurations reloaded.");
+    }
+
+    // ── Accessors ──
+
+    public static VelKothPlugin getInstance() {
+        return instance;
+    }
+
+    public PluginConfig getPluginConfig() {
+        return pluginConfig;
+    }
+
+    public MessagesConfig getMessages() {
+        return messagesConfig;
+    }
+
+    public ArenaConfig getArenaConfig() {
+        return arenaConfig;
+    }
+
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
+    }
+
+    public ArenaManager getArenaManager() {
+        return arenaManager;
+    }
+
+    public CaptureManager getCaptureManager() {
+        return captureManager;
+    }
+
+    public DisplayManager getDisplayManager() {
+        return displayManager;
+    }
+
+    public RewardManager getRewardManager() {
+        return rewardManager;
+    }
+
+    public StatsManager getStatsManager() {
+        return statsManager;
+    }
+
+    public WandManager getWandManager() {
+        return wandManager;
+    }
+
+    public SchedulerManager getSchedulerManager() {
+        return schedulerManager;
+    }
+}
