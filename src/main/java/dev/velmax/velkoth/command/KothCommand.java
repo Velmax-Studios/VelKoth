@@ -101,6 +101,10 @@ public final class KothCommand {
                 .permission("velkoth.admin")
                 .handler(ctx -> handleList(ctx.sender().source())));
 
+        manager.command(base.literal("next")
+                .required("name", StringParser.stringParser(), arenaSuggestions)
+                .handler(ctx -> handleNext(ctx.sender().source(), ctx.get("name"))));
+
         manager.command(base.literal("stats")
                 .senderType(PlayerSource.class)
                 .handler(ctx -> handleStats(ctx.sender().source())));
@@ -271,6 +275,27 @@ public final class KothCommand {
         }
     }
 
+    // ── Next ──
+
+    private void handleNext(CommandSender sender, String nameLowercase) {
+        String name = nameLowercase.toLowerCase();
+        Arena arena = plugin.getArenaManager().getArena(name);
+        if (arena == null) {
+            sendPrefixed(sender, plugin.getMessages().getArenaNotFound().replace("<arena>", name));
+            return;
+        }
+
+        Long delayMs = plugin.getSchedulerManager().getNextStartTime(name);
+        if (delayMs == null) {
+            sendPrefixed(sender, plugin.getMessages().getNoNextScheduled().replace("<arena>", name));
+        } else {
+            String timeStr = formatDuration(delayMs);
+            sendPrefixed(sender, plugin.getMessages().getNextScheduled()
+                    .replace("<arena>", name)
+                    .replace("<time>", timeStr));
+        }
+    }
+
     // ── Stats ──
 
     private void handleStats(Player player) {
@@ -309,6 +334,8 @@ public final class KothCommand {
         sendPrefixed(sender, " <gold>/koth resume <name></gold> <dark_gray>-</dark_gray> <gray>Resume a paused event");
         sendPrefixed(sender, " <gold>/koth wand</gold> <dark_gray>-</dark_gray> <gray>Get the selection wand");
         sendPrefixed(sender, " <gold>/koth list</gold> <dark_gray>-</dark_gray> <gray>List all arenas");
+        sendPrefixed(sender,
+                " <gold>/koth next <name></gold> <dark_gray>-</dark_gray> <gray>Check when an arena starts next");
         sendPrefixed(sender, " <gold>/koth stats</gold> <dark_gray>-</dark_gray> <gray>View your stats");
         sendPrefixed(sender, " <gold>/koth reload</gold> <dark_gray>-</dark_gray> <gray>Reload configuration");
     }
@@ -318,5 +345,23 @@ public final class KothCommand {
     private void sendPrefixed(CommandSender sender, String message) {
         var prefix = miniMessage.deserialize(plugin.getMessages().getPrefix());
         sender.sendMessage(prefix.append(miniMessage.deserialize(message)));
+    }
+
+    private String formatDuration(long millis) {
+        long seconds = millis / 1000;
+        long days = seconds / 86400;
+        long hours = (seconds % 86400) / 3600;
+        long minutes = ((seconds % 86400) % 3600) / 60;
+
+        StringBuilder sb = new StringBuilder();
+        if (days > 0)
+            sb.append(days).append("d ");
+        if (hours > 0)
+            sb.append(hours).append("h ");
+        if (minutes > 0)
+            sb.append(minutes).append("m ");
+        if (sb.isEmpty())
+            sb.append("< 1m");
+        return sb.toString().trim();
     }
 }

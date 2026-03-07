@@ -101,4 +101,17 @@ public final class SchedulerManager {
     public List<ScheduleEntry> getEntries() {
         return List.copyOf(entries);
     }
+
+    public Long getNextStartTime(String arenaId) {
+        long minDelay = -1;
+        for (ScheduleEntry entry : entries) {
+            if (entry.arenaId().equalsIgnoreCase(arenaId)) {
+                long delay = calculateDelayMs(entry);
+                if (minDelay == -1 || delay < minDelay) {
+                    minDelay = delay;
+                }
+            }
+        }
+        return minDelay == -1 ? null : minDelay;
+    }
 }

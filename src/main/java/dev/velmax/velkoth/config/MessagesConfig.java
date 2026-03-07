@@ -103,6 +103,12 @@ public class MessagesConfig extends OkaeriConfig {
     @Comment("Player only command")
     private String playerOnly = "<red>This command can only be run by a player.";
 
+    @Comment("Sent when checking the next scheduled KoTH")
+    private String nextScheduled = "<green>The next <gold><arena></gold> KoTH starts in <aqua><time></aqua>.";
+
+    @Comment("Sent when checking the next scheduled KoTH and there are none")
+    private String noNextScheduled = "<red>There are no scheduled events for <gold><arena></gold>.";
+
     // Getters
     public String getPrefix() {
         return prefix;
@@ -226,5 +232,13 @@ public class MessagesConfig extends OkaeriConfig {
 
     public String getPlayerOnly() {
         return playerOnly;
+    }
+
+    public String getNextScheduled() {
+        return nextScheduled;
+    }
+
+    public String getNoNextScheduled() {
+        return noNextScheduled;
     }
 }
