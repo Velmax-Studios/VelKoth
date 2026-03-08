@@ -14,6 +14,7 @@ import dev.velmax.velkoth.manager.ArenaManager;
 import dev.velmax.velkoth.manager.RewardManager;
 import dev.velmax.velkoth.manager.StatsManager;
 import dev.velmax.velkoth.manager.WandManager;
+import dev.velmax.velkoth.team.TeamManager;
 import dev.velmax.velkoth.scheduler.SchedulerManager;
 import dev.velmax.velkoth.storage.DatabaseManager;
 import eu.okaeri.configs.ConfigManager;
@@ -46,6 +47,7 @@ public final class VelKothPlugin extends JavaPlugin {
     private StatsManager statsManager;
     private WandManager wandManager;
     private SchedulerManager schedulerManager;
+    private TeamManager teamManager;
 
     @Override
     public void onEnable() {
@@ -66,6 +68,8 @@ public final class VelKothPlugin extends JavaPlugin {
         statsManager = new StatsManager(databaseManager);
         wandManager = new WandManager();
         schedulerManager = new SchedulerManager(this);
+        teamManager = new TeamManager(this);
+        teamManager.loadHook();
 
         // 4. Load arenas from config
         arenaManager.loadArenas();
@@ -200,5 +204,9 @@ public final class VelKothPlugin extends JavaPlugin {
 
     public SchedulerManager getSchedulerManager() {
         return schedulerManager;
+    }
+
+    public TeamManager getTeamManager() {
+        return teamManager;
     }
 }

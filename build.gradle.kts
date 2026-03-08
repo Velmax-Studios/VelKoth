@@ -13,11 +13,11 @@ java {
 }
 
 repositories {
-    mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://storehouse.okaeri.eu/repository/maven-public/")
     maven("https://jitpack.io")
     maven("https://repo.extendedclip.com/releases/")
+    maven("https://repo.codemc.io/repository/maven-public/")
 }
 
 dependencies {
@@ -34,6 +34,7 @@ dependencies {
     // Hooks (compile-only)
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
     compileOnly("me.clip:placeholderapi:2.11.6")
+    compileOnly(files("/home/sayan/IdeaProjects/LandClaimPlugin/target/LandClaimPlugin-2.0.1.jar"))
 
     // Commands (Cloud V2)
     implementation("org.incendo:cloud-paper:2.0.0-beta.10")

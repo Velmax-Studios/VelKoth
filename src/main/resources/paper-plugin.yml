@@ -6,9 +6,47 @@ author: VelMax Studios
 api-version: "1.21"
 folia-supported: true
 
-softdepend:
-  - Vault
-  - PlaceholderAPI
+dependencies:
+  server:
+    Vault:
+      load: BEFORE
+      required: false
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+    BetterTeams:
+      load: BEFORE
+      required: false
+    Factions:
+      load: BEFORE
+      required: false
+    GangsPlus:
+      load: BEFORE
+      required: false
+    Guilds:
+      load: BEFORE
+      required: false
+    Kingdoms:
+      load: BEFORE
+      required: false
+    SuperiorSkyblock2:
+      load: BEFORE
+      required: false
+    Towny:
+      load: BEFORE
+      required: false
+    UltimateClans:
+      load: BEFORE
+      required: false
+    Parties:
+      load: BEFORE
+      required: false
+    AxParties:
+      load: BEFORE
+      required: false
+    LandClaimPlugin:
+      load: BEFORE
+      required: false
 permissions:
   velkoth.admin:
     description: Full administrative access to VelKoth

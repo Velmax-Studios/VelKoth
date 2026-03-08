@@ -108,10 +108,27 @@ public final class CaptureManager {
 
         if (playersOnHill.isEmpty()) {
             handleEmptyHill(arena, session);
-        } else if (playersOnHill.size() == 1) {
-            handleSingleCapture(arena, session, playersOnHill.getFirst());
         } else {
-            handleContested(arena, session, playersOnHill);
+            // Check if all players on the hill are on the same team
+            boolean allSameTeam = true;
+            if (playersOnHill.size() > 1) {
+                Player firstPlayer = playersOnHill.getFirst();
+                for (int i = 1; i < playersOnHill.size(); i++) {
+                    if (!plugin.getTeamManager().isSameTeam(firstPlayer, playersOnHill.get(i))) {
+                        allSameTeam = false;
+                        break;
+                    }
+                }
+            }
+
+            if (allSameTeam) {
+                // If everyone is on the same team, or there is only 1 player, it is considered
+                // a single capture state
+                // We pick the first player as the "capturer" for rewards/stats
+                handleSingleCapture(arena, session, playersOnHill.getFirst(), playersOnHill);
+            } else {
+                handleContested(arena, session, playersOnHill);
+            }
         }
 
         // Update BossBar
@@ -139,7 +156,7 @@ public final class CaptureManager {
         session.setContested(false);
     }
 
-    private void handleSingleCapture(Arena arena, CaptureSession session, Player player) {
+    private void handleSingleCapture(Arena arena, CaptureSession session, Player player, List<Player> allTeamPlayers) {
         UUID playerUuid = player.getUniqueId();
         session.setContested(false);
         session.resetGraceTimer();
@@ -172,8 +189,13 @@ public final class CaptureManager {
         switch (arena.captureMode()) {
             case CAPTURE -> {
                 session.incrementElapsed();
-                plugin.getDisplayManager().sendActionBar(player, arena, session);
-                plugin.getDisplayManager().playTickSound(player);
+
+                // Only send to the main capturer, or to all team members?
+                // Let's send to all team members on the hill
+                for (Player p : allTeamPlayers) {
+                    plugin.getDisplayManager().sendActionBar(p, arena, session);
+                    plugin.getDisplayManager().playTickSound(p);
+                }
 
                 if (session.elapsedSeconds() >= arena.captureTime()) {
                     handleWin(arena, session, player);
@@ -182,7 +204,9 @@ public final class CaptureManager {
             case SCORE -> {
                 int score = session.addScore(playerUuid, 1);
                 session.incrementElapsed();
-                plugin.getDisplayManager().sendActionBar(player, arena, session);
+                for (Player p : allTeamPlayers) {
+                    plugin.getDisplayManager().sendActionBar(p, arena, session);
+                }
 
                 if (score >= arena.maxScore()) {
                     handleWin(arena, session, player);

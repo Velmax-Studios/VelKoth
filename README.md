@@ -11,6 +11,7 @@ VelKoth supports multiple capture modes (`CAPTURE` and `SCORE`), O(1) mathematic
   - `CAPTURE`: Traditional KoTH where one player must hold the hill uninterrupted for the duration.
   - `SCORE`: Point-based KoTH where players accumulate capture seconds until they reach the target score.
 - **High Performance Regions**: Both Cuboid and Cylinder regions utilise O(1) containment algorithms removing loop-based block checks for zero server TPS impact.
+- **Team Plugin Integrations**: Fully supports team and faction capturing! Players in the same team, faction, or party can capture hills together without contesting. Supports 12+ plugins natively.
 - **Advanced Display Visuals**: Leverages modern Paper Adventure API to push ActionBars, custom BossBars, on-screen Titles, Particle effects, and Sounds.
 - **Robust Storage System**: Fully asynchronous SQLite/MySQL HikariCP connection pooling storing player total wins, daily wins, and weekly wins.
 - **Scheduler Intergration**: Define exactly when specific arenas should run via Cron-like syntax (eg. every Saturday at 14:30) with optional random arena selection.
@@ -26,6 +27,10 @@ VelKoth supports multiple capture modes (`CAPTURE` and `SCORE`), O(1) mathematic
 - **Java 21**
 - [Vault](https://www.spigotmc.org/resources/vault.34315/) *(Optional - Required for Economy rewards)*
 - [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) *(Optional - Exposes `%koth_arena%`, `%koth_time%`, `%koth_owner%`, `%koth_players%`)*
+- **Supported Team Plugins** *(Optional - Allows team members to capture together)*
+  - BetterTeams, Factions (UUID/Saber), GangsPlus, Guilds, KingdomsX
+  - SuperiorSkyblock2, Towny Advanced, UltimateClans, Parties, AxParties
+  - LandClaimPlugin (Custom hook)
 
 ---
 
@@ -55,6 +60,7 @@ VelKoth features a robust, auto-completing Brigadier command hierarchy.
 | :--- | :--- | :--- |
 | `/koth help` | `velkoth.use` | View available commands |
 | `/koth stats` | `velkoth.use` | View your personal KoTH wins (Daily/Weekly/All-time) |
+| `/koth next <name>` | `velkoth.use` | See when is the next Koth gonna start |
 | `/koth list` | `velkoth.admin` | View all arenas and their current status |
 | `/koth wand` | `velkoth.admin` | Receive the region selection wand |
 | `/koth create <name>` | `velkoth.admin` | Create a new arena from your wand selection |
