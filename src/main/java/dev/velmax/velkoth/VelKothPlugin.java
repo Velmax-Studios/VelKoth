@@ -19,6 +19,7 @@ import dev.velmax.velkoth.scheduler.SchedulerManager;
 import dev.velmax.velkoth.storage.DatabaseManager;
 import eu.okaeri.configs.ConfigManager;
 import eu.okaeri.configs.yaml.snakeyaml.YamlSnakeYamlConfigurer;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -92,6 +93,10 @@ public final class VelKothPlugin extends JavaPlugin {
             new KothPlaceholderExpansion(this).register();
             getLogger().info("PlaceholderAPI expansion registered.");
         }
+
+        // 9. Initialize bStats
+        int pluginId = 29992;
+        new Metrics(this, pluginId);
 
         long elapsed = System.currentTimeMillis() - start;
         getLogger()

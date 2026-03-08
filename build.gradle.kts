@@ -39,6 +39,9 @@ dependencies {
     // FastBoard (compile and shadow)
     implementation("fr.mrmicky:fastboard:2.1.5")
 
+    // bStats (compile and shadow)
+    implementation("org.bstats:bstats-bukkit:3.1.0")
+
     // Commands (Cloud V2)
     implementation("org.incendo:cloud-paper:2.0.0-beta.10")
     implementation("org.incendo:cloud-minecraft-extras:2.0.0-beta.10")
@@ -50,8 +53,10 @@ tasks {
         relocate("eu.okaeri", "dev.velmax.velkoth.libs.okaeri")
         relocate("com.zaxxer.hikari", "dev.velmax.velkoth.libs.hikari")
         relocate("org.yaml.snakeyaml", "dev.velmax.velkoth.libs.snakeyaml")
+        relocate("dev.dejvokep.boostedyaml", "dev.velmax.velkoth.libs.boostedyaml")
         relocate("org.incendo.cloud", "dev.velmax.velkoth.libs.cloud")
         relocate("fr.mrmicky.fastboard", "dev.velmax.velkoth.libs.fastboard")
+        relocate("org.bstats", "dev.velmax.velkoth.libs.bstats")
         minimize()
     }
 

@@ -14,6 +14,7 @@ VelKoth supports multiple capture modes (`CAPTURE` and `SCORE`), O(1) mathematic
 - **Team Plugin Integrations**: Fully supports team and faction capturing! Players in the same team, faction, or party can capture hills together without contesting. Supports 12+ plugins natively.
 - **Advanced Display Visuals**: Leverages modern Paper Adventure API to push ActionBars, custom BossBars, on-screen Titles, Particle effects, and Sounds. Includes **FastBoard-powered Scoreboards** (with smart-overrides for plugins like TAB and SimpleScore) and native **Paper TextDisplay Holograms** that are fully chunk-safe.
 - **Robust Storage System**: Fully asynchronous SQLite/MySQL HikariCP connection pooling storing player total wins, daily wins, and weekly wins.
+- **bStats Metrics Integration**: Uses anonymous metrics tracking to keep developers informed on adoption rates and usage.
 - **Scheduler Intergration**: Define exactly when specific arenas should run via Cron-like syntax (eg. every Saturday at 14:30) with optional random arena selection.
 - **Dynamic Configuration**: Built on Okaeri Configs for instant YAML hot-reloading. Every system message, GUI layout, and internal setting can be modified.
 - **Comprehensive Rewards**: Execute commands, distribute ItemStacks (with overflow drop handling), or give Vault Economy money to the winners.
