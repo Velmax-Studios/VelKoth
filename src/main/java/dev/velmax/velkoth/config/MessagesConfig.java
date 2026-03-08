@@ -66,6 +66,33 @@ public class MessagesConfig extends OkaeriConfig {
     @Comment("ActionBar text during capture")
     private String actionBarCapturing = "<green>Capturing: <white><time></white> remaining";
 
+    // ── Scoreboard ──
+    @Comment("Scoreboard title")
+    private String scoreboardTitle = "<gradient:#ff6b6b:#ffa500><bold>VelMax KoTH</bold></gradient>";
+
+    @Comment("Scoreboard lines when an arena is active")
+    private java.util.List<String> scoreboardLinesActive = java.util.List.of(
+            "<gray>----------------------",
+            "<white>Arena: <gold><arena></gold>",
+            "",
+            "<white>Status: <yellow><capturer></yellow>",
+            "<white>Time: <green><time></green>",
+            "<gray>----------------------");
+
+    @Comment("Scoreboard lines when no arena is active")
+    private java.util.List<String> scoreboardLinesIdle = java.util.List.of(
+            "<gray>----------------------",
+            "<white>No active events.",
+            "<gray>Waiting for next start...",
+            "<gray>----------------------");
+
+    // ── Hologram ──
+    @Comment("Hologram lines displayed above the active hill")
+    private java.util.List<String> hologramLines = java.util.List.of(
+            "<gradient:#ff6b6b:#ffa500><bold><arena> KoTH</bold></gradient>",
+            "<white>Status: <yellow><capturer></yellow>",
+            "<white>Time: <green><time></green>");
+
     // ── Admin ──
     @Comment("Arena created")
     private String arenaCreated = "<green>Arena <gold><arena></gold> has been created.";
@@ -184,6 +211,22 @@ public class MessagesConfig extends OkaeriConfig {
 
     public String getActionBarCapturing() {
         return actionBarCapturing;
+    }
+
+    public String getScoreboardTitle() {
+        return scoreboardTitle;
+    }
+
+    public java.util.List<String> getScoreboardLinesActive() {
+        return scoreboardLinesActive;
+    }
+
+    public java.util.List<String> getScoreboardLinesIdle() {
+        return scoreboardLinesIdle;
+    }
+
+    public java.util.List<String> getHologramLines() {
+        return hologramLines;
     }
 
     public String getArenaCreated() {

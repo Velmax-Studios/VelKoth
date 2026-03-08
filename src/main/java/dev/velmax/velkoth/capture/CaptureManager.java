@@ -131,8 +131,10 @@ public final class CaptureManager {
             }
         }
 
-        // Update BossBar
+        // Update BossBar, Scoreboards, and Holograms
         plugin.getDisplayManager().updateBossBar(arena, session);
+        plugin.getDisplayManager().getScoreboardManager().updateAll();
+        plugin.getDisplayManager().getHologramManager().update(arena);
     }
 
     private void handleEmptyHill(Arena arena, CaptureSession session) {
@@ -260,8 +262,8 @@ public final class CaptureManager {
         plugin.getStatsManager().recordWin(winner.getUniqueId(), winner.getName(), arena.id());
 
         // Stop the arena
-        plugin.getArenaManager().getArena(arena.id());
-        stopArena(arena);
+        Arena foundArena = plugin.getArenaManager().getArena(arena.id());
+        stopArena(foundArena != null ? foundArena : arena);
     }
 
     /**
@@ -282,6 +284,10 @@ public final class CaptureManager {
         plugin.getDisplayManager().showStartTitle(arena);
         plugin.getDisplayManager().broadcast(
                 plugin.getMessages().getEventStart(), arena, null);
+
+        // Initialize scoreboard/hologram
+        plugin.getDisplayManager().getScoreboardManager().updateAll();
+        plugin.getDisplayManager().getHologramManager().spawn(arena);
 
         // Ensure tick loop is running
         startTickLoop();
@@ -305,6 +311,8 @@ public final class CaptureManager {
 
         removeSession(arena.id());
         plugin.getDisplayManager().removeBossBar(arena);
+        plugin.getDisplayManager().getHologramManager().remove(arena);
+        plugin.getDisplayManager().getScoreboardManager().updateAll();
 
         Bukkit.getPluginManager().callEvent(new KothStopEvent(arena));
         plugin.getDisplayManager().broadcast(
@@ -346,5 +354,7 @@ public final class CaptureManager {
             plugin.getDisplayManager().removeBossBar(arena);
         }
         sessions.clear();
+        plugin.getDisplayManager().getHologramManager().removeAll();
+        plugin.getDisplayManager().getScoreboardManager().updateAll();
     }
 }

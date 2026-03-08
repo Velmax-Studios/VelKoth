@@ -30,8 +30,21 @@ public final class DisplayManager {
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final Map<String, BossBar> bossBars = new ConcurrentHashMap<>();
 
+    private final ScoreboardManager scoreboardManager;
+    private final HologramManager hologramManager;
+
     public DisplayManager(VelKothPlugin plugin) {
         this.plugin = plugin;
+        this.scoreboardManager = new ScoreboardManager(plugin);
+        this.hologramManager = new HologramManager(plugin);
+    }
+
+    public ScoreboardManager getScoreboardManager() {
+        return scoreboardManager;
+    }
+
+    public HologramManager getHologramManager() {
+        return hologramManager;
     }
 
     private PluginConfig.DisplaySettings display() {
@@ -231,6 +244,7 @@ public final class DisplayManager {
     public void cleanup() {
         bossBars.values().forEach(bar -> Bukkit.getOnlinePlayers().forEach(p -> p.hideBossBar(bar)));
         bossBars.clear();
+        hologramManager.removeAll();
     }
 
     // ──────────────────────────── Helpers ────────────────────────────

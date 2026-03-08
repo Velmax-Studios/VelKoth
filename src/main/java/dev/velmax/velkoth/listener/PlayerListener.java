@@ -31,11 +31,17 @@ public final class PlayerListener implements Listener {
                 session.setLastCapturer(event.getPlayer().getUniqueId());
             }
         }
+
+        // Remove scoreboard
+        plugin.getDisplayManager().getScoreboardManager().removeBoard(event.getPlayer());
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         // BossBars are server-wide; new players don't auto-see them
         // We need no special handling as the BossBar tick will include them
+
+        // Create player scoreboard
+        plugin.getDisplayManager().getScoreboardManager().createBoard(event.getPlayer());
     }
 }

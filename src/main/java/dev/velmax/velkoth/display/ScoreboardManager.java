@@ -1,0 +1,171 @@
+package dev.velmax.velkoth.display;
+
+import dev.velmax.velkoth.VelKothPlugin;
+import dev.velmax.velkoth.arena.Arena;
+import dev.velmax.velkoth.capture.CaptureSession;
+import fr.mrmicky.fastboard.adventure.FastBoard;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Manages per-player FastBoard scoreboards using an event-driven approach.
+ */
+public class ScoreboardManager {
+
+    private final VelKothPlugin plugin;
+    private final Map<UUID, FastBoard> boards = new ConcurrentHashMap<>();
+    private final MiniMessage mm = MiniMessage.miniMessage();
+
+    public ScoreboardManager(VelKothPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    /**
+     * Initializes a scoreboard for a newly joined player.
+     * 
+     * @param player the player
+     */
+    public void createBoard(Player player) {
+        if (!plugin.getPluginConfig().getDisplay().isScoreboardEnabled())
+            return;
+
+        FastBoard board = new FastBoard(player);
+        String titleString = plugin.getMessages().getScoreboardTitle();
+        board.updateTitle(mm.deserialize(titleString));
+        boards.put(player.getUniqueId(), board);
+
+        // Render the board immediately reflecting current active arenas (if any)
+        updateBoard(player);
+    }
+
+    /**
+     * Removes and cleans up a player's scoreboard when they quit.
+     * 
+     * @param player the player
+     */
+    public void removeBoard(Player player) {
+        FastBoard board = boards.remove(player.getUniqueId());
+        if (board != null) {
+            board.delete();
+        }
+    }
+
+    /**
+     * Re-renders the scoreboard for a specific player.
+     * 
+     * @param player the player to update
+     */
+    private void updateBoard(Player player) {
+        FastBoard board = boards.get(player.getUniqueId());
+        if (board == null || board.isDeleted())
+            return;
+
+        java.util.Collection<Arena> activeArenas = plugin.getArenaManager().getActiveArenas();
+        List<String> rawLines;
+
+        if (activeArenas.isEmpty()) {
+            rawLines = plugin.getMessages().getScoreboardLinesIdle();
+        } else {
+            rawLines = plugin.getMessages().getScoreboardLinesActive();
+        }
+
+        List<Component> finalLines = new ArrayList<>();
+
+        for (String line : rawLines) {
+            if (activeArenas.isEmpty()) {
+                finalLines.add(mm.deserialize(line));
+            } else {
+                // Determine values for the first active arena
+                // Note: Multi-arena scoreboards require complex logic. We assume 1 active arena
+                // for display.
+                Arena arena = activeArenas.iterator().next();
+                CaptureSession session = plugin.getCaptureManager().getSession(arena.id());
+
+                String arenaName = arena.displayName();
+                String capturerName = "None";
+                String timeString = "0s";
+
+                if (session != null) {
+                    if (session.isContested()) {
+                        capturerName = plugin.getMessages().getCaptureContested();
+                        // Stripping color tags just to be safe for placeholders if needed,
+                        // but since these go through MM again, we can just use the raw string.
+                    } else if (session.capturingPlayer() != null) {
+                        Player capPlayer = Bukkit.getPlayer(session.capturingPlayer());
+                        if (capPlayer != null) {
+                            capturerName = capPlayer.getName();
+
+                            // Check team
+                            String team = plugin.getTeamManager().getTeamName(capPlayer);
+                            if (team != null && !team.isEmpty()) {
+                                capturerName = capturerName + " [" + team + "]";
+                            }
+                        }
+                    }
+
+                    timeString = formatTime(session, arena);
+                }
+
+                Component parsed = mm.deserialize(line,
+                        Placeholder.unparsed("arena", arenaName),
+                        Placeholder.unparsed("capturer", capturerName),
+                        Placeholder.unparsed("time", timeString));
+                finalLines.add(parsed);
+            }
+        }
+
+        board.updateLines(finalLines);
+    }
+
+    /**
+     * Updates the scoreboards of all online players.
+     * Called by DisplayManager when state changes (e.g. tick update on active
+     * arena, arena start/stop).
+     */
+    public void updateAll() {
+        if (!plugin.getPluginConfig().getDisplay().isScoreboardEnabled())
+            return;
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            updateBoard(player);
+        }
+    }
+
+    /**
+     * Helper to format the time string for the scoreboard
+     */
+    private String formatTime(CaptureSession session, Arena arena) {
+        int seconds;
+        int max;
+        switch (arena.captureMode()) {
+            case SCORE -> {
+                // In SCORE mode, we don't have a specific player's score globally for the
+                // board,
+                // so we show the highest score or time remaining.
+                seconds = session.elapsedSeconds();
+                max = arena.maxScore();
+                return seconds + "/" + max;
+            }
+            case CAPTURE -> {
+                seconds = session.elapsedSeconds();
+                max = arena.captureTime();
+                int timeRemaining = Math.max(0, max - seconds);
+                int mins = timeRemaining / 60;
+                int secs = timeRemaining % 60;
+                if (mins > 0)
+                    return String.format("%02d:%02d", mins, secs);
+                return secs + "s";
+            }
+        }
+        return "";
+    }
+}

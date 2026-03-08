@@ -139,6 +139,15 @@ public class PluginConfig extends OkaeriConfig {
         @Comment("Enable particle effects on the hill")
         private boolean particlesEnabled = true;
 
+        @Comment("Enable per-player FastBoard scoreboards showing active capture status")
+        private boolean scoreboardEnabled = true;
+
+        @Comment("Enable floating TextDisplay holograms above active hills")
+        private boolean hologramEnabled = true;
+
+        @Comment("Y-axis offset for the hologram above the hill center")
+        private double hologramYOffset = 3.0;
+
         public boolean isBossBarEnabled() {
             return bossBarEnabled;
         }
@@ -157,6 +166,18 @@ public class PluginConfig extends OkaeriConfig {
 
         public boolean isParticlesEnabled() {
             return particlesEnabled;
+        }
+
+        public boolean isScoreboardEnabled() {
+            return scoreboardEnabled;
+        }
+
+        public boolean isHologramEnabled() {
+            return hologramEnabled;
+        }
+
+        public double getHologramYOffset() {
+            return hologramYOffset;
         }
     }
 }

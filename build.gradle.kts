@@ -36,6 +36,9 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly(files("/home/sayan/IdeaProjects/LandClaimPlugin/target/LandClaimPlugin-2.0.1.jar"))
 
+    // FastBoard (compile and shadow)
+    implementation("fr.mrmicky:fastboard:2.1.3")
+
     // Commands (Cloud V2)
     implementation("org.incendo:cloud-paper:2.0.0-beta.10")
     implementation("org.incendo:cloud-minecraft-extras:2.0.0-beta.10")
@@ -48,6 +51,7 @@ tasks {
         relocate("com.zaxxer.hikari", "dev.velmax.velkoth.libs.hikari")
         relocate("org.yaml.snakeyaml", "dev.velmax.velkoth.libs.snakeyaml")
         relocate("org.incendo.cloud", "dev.velmax.velkoth.libs.cloud")
+        relocate("fr.mrmicky.fastboard", "dev.velmax.velkoth.libs.fastboard")
         minimize()
     }
 
