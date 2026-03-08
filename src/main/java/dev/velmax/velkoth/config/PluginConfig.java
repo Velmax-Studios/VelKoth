@@ -142,6 +142,17 @@ public class PluginConfig extends OkaeriConfig {
         @Comment("Enable per-player FastBoard scoreboards showing active capture status")
         private boolean scoreboardEnabled = true;
 
+        @Comment({
+                "Should VelKoth show an 'Idle' scoreboard when there are no active events?",
+                "Set this to false if you are using another scoreboard plugin (TAB, SimpleScore) and only want VelKoth's scoreboard during events."
+        })
+        private boolean showIdleScoreboard = false;
+
+        @Comment({
+                "If true, VelKoth will attempt to pause other scoreboard plugins (like TAB or SimpleScore) while an event is active."
+        })
+        private boolean overrideOtherScoreboards = true;
+
         @Comment("Enable floating TextDisplay holograms above active hills")
         private boolean hologramEnabled = true;
 
@@ -170,6 +181,14 @@ public class PluginConfig extends OkaeriConfig {
 
         public boolean isScoreboardEnabled() {
             return scoreboardEnabled;
+        }
+
+        public boolean isShowIdleScoreboard() {
+            return showIdleScoreboard;
+        }
+
+        public boolean isOverrideOtherScoreboards() {
+            return overrideOtherScoreboards;
         }
 
         public boolean isHologramEnabled() {

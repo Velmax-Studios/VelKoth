@@ -6,13 +6,13 @@ VelKoth supports multiple capture modes (`CAPTURE` and `SCORE`), O(1) mathematic
 
 ## 🚀 Features
 
-- **Modern Architecture**: Compiled against Paper 1.21+ using Java 21 and the Incendo Cloud V2 native Brigadier command framework.
+- **Modern Architecture**: Compiled against Paper 1.21+ using Java 21, **Folia-supported Regional/Entity Schedulers**, and the Incendo Cloud V2 native Brigadier command framework.
 - **Multiple Capture Modes**: 
   - `CAPTURE`: Traditional KoTH where one player must hold the hill uninterrupted for the duration.
   - `SCORE`: Point-based KoTH where players accumulate capture seconds until they reach the target score.
 - **High Performance Regions**: Both Cuboid and Cylinder regions utilise O(1) containment algorithms removing loop-based block checks for zero server TPS impact.
 - **Team Plugin Integrations**: Fully supports team and faction capturing! Players in the same team, faction, or party can capture hills together without contesting. Supports 12+ plugins natively.
-- **Advanced Display Visuals**: Leverages modern Paper Adventure API to push ActionBars, custom BossBars, on-screen Titles, Particle effects, and Sounds.
+- **Advanced Display Visuals**: Leverages modern Paper Adventure API to push ActionBars, custom BossBars, on-screen Titles, Particle effects, and Sounds. Includes **FastBoard-powered Scoreboards** (with smart-overrides for plugins like TAB and SimpleScore) and native **Paper TextDisplay Holograms** that are fully chunk-safe.
 - **Robust Storage System**: Fully asynchronous SQLite/MySQL HikariCP connection pooling storing player total wins, daily wins, and weekly wins.
 - **Scheduler Intergration**: Define exactly when specific arenas should run via Cron-like syntax (eg. every Saturday at 14:30) with optional random arena selection.
 - **Dynamic Configuration**: Built on Okaeri Configs for instant YAML hot-reloading. Every system message, GUI layout, and internal setting can be modified.

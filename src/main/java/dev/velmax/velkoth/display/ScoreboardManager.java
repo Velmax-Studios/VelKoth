@@ -10,6 +10,9 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import org.bukkit.scoreboard.Scoreboard;
+
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +28,38 @@ public class ScoreboardManager {
     private final Map<UUID, FastBoard> boards = new ConcurrentHashMap<>();
     private final MiniMessage mm = MiniMessage.miniMessage();
 
+    private final Map<UUID, Scoreboard> previousScoreboards = new ConcurrentHashMap<>();
+    private Scoreboard emptyScoreboard;
+    private boolean hasTab = false;
+    private Method tabGetInstance;
+    private Method tabGetScoreboardManager;
+    private Method tabGetPlayer;
+    private Method tabSetScoreboardVisible;
+
     public ScoreboardManager(VelKothPlugin plugin) {
         this.plugin = plugin;
+        initHooks();
+    }
+
+    private void initHooks() {
+        if (Bukkit.getPluginManager().getPlugin("TAB") != null) {
+            try {
+                Class<?> tabAPIClass = Class.forName("me.neznamy.tab.api.TabAPI");
+                tabGetInstance = tabAPIClass.getMethod("getInstance");
+                tabGetScoreboardManager = tabAPIClass.getMethod("getScoreboardManager");
+                tabGetPlayer = tabAPIClass.getMethod("getPlayer", UUID.class);
+
+                Object api = tabGetInstance.invoke(null);
+                Object sm = tabGetScoreboardManager.invoke(api);
+                if (sm != null) {
+                    tabSetScoreboardVisible = sm.getClass().getMethod("setScoreboardVisible",
+                            Class.forName("me.neznamy.tab.api.TabPlayer"), boolean.class, boolean.class);
+                    hasTab = true;
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("Found TAB plugin but failed to hook into its Scoreboard API.");
+            }
+        }
     }
 
     /**
@@ -38,12 +71,18 @@ public class ScoreboardManager {
         if (!plugin.getPluginConfig().getDisplay().isScoreboardEnabled())
             return;
 
+        boolean isIdle = plugin.getArenaManager().getActiveArenas().isEmpty();
+        if (isIdle && !plugin.getPluginConfig().getDisplay().isShowIdleScoreboard()) {
+            // Don't create the board yet, wait for an event
+            return;
+        }
+
         FastBoard board = new FastBoard(player);
         String titleString = plugin.getMessages().getScoreboardTitle();
         board.updateTitle(mm.deserialize(titleString));
         boards.put(player.getUniqueId(), board);
 
-        // Render the board immediately reflecting current active arenas (if any)
+        pauseOtherScoreboards(player);
         updateBoard(player);
     }
 
@@ -57,6 +96,7 @@ public class ScoreboardManager {
         if (board != null) {
             board.delete();
         }
+        resumeOtherScoreboards(player);
     }
 
     /**
@@ -65,11 +105,26 @@ public class ScoreboardManager {
      * @param player the player to update
      */
     private void updateBoard(Player player) {
-        FastBoard board = boards.get(player.getUniqueId());
-        if (board == null || board.isDeleted())
-            return;
-
         java.util.Collection<Arena> activeArenas = plugin.getArenaManager().getActiveArenas();
+        boolean isIdle = activeArenas.isEmpty();
+
+        if (isIdle && !plugin.getPluginConfig().getDisplay().isShowIdleScoreboard()) {
+            FastBoard existing = boards.remove(player.getUniqueId());
+            if (existing != null) {
+                existing.delete();
+                resumeOtherScoreboards(player);
+            }
+            return; // Don't show inactive board
+        }
+
+        FastBoard board = boards.get(player.getUniqueId());
+        if (board == null || board.isDeleted()) {
+            createBoard(player);
+            board = boards.get(player.getUniqueId());
+            if (board == null)
+                return;
+        }
+
         List<String> rawLines;
 
         if (activeArenas.isEmpty()) {
@@ -137,6 +192,63 @@ public class ScoreboardManager {
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             updateBoard(player);
+        }
+    }
+
+    private void pauseOtherScoreboards(Player player) {
+        if (!plugin.getPluginConfig().getDisplay().isOverrideOtherScoreboards())
+            return;
+
+        // Bukkit Dummy Scoreboard Overriding (Handles SimpleScore and most plugins)
+        if (emptyScoreboard == null) {
+            emptyScoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+        }
+        Scoreboard current = player.getScoreboard();
+        if (current != Bukkit.getScoreboardManager().getMainScoreboard() && current != emptyScoreboard) {
+            previousScoreboards.put(player.getUniqueId(), current);
+        }
+        player.setScoreboard(emptyScoreboard);
+
+        // TAB API Overriding (FastBoards might flicker with TAB if it ignores the dummy
+        // board)
+        if (hasTab) {
+            try {
+                Object api = tabGetInstance.invoke(null);
+                Object tabPlayer = tabGetPlayer.invoke(api, player.getUniqueId());
+                if (tabPlayer != null) {
+                    Object sm = tabGetScoreboardManager.invoke(api);
+                    tabSetScoreboardVisible.invoke(sm, tabPlayer, false, false);
+                }
+            } catch (Exception e) {
+                // Ignore silent reflection errors
+            }
+        }
+    }
+
+    private void resumeOtherScoreboards(Player player) {
+        if (!plugin.getPluginConfig().getDisplay().isOverrideOtherScoreboards())
+            return;
+
+        // Restore Bukkit Scoreboard
+        Scoreboard previous = previousScoreboards.remove(player.getUniqueId());
+        if (previous != null) {
+            player.setScoreboard(previous);
+        } else {
+            player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+        }
+
+        // Restore TAB API
+        if (hasTab) {
+            try {
+                Object api = tabGetInstance.invoke(null);
+                Object tabPlayer = tabGetPlayer.invoke(api, player.getUniqueId());
+                if (tabPlayer != null) {
+                    Object sm = tabGetScoreboardManager.invoke(api);
+                    tabSetScoreboardVisible.invoke(sm, tabPlayer, true, false);
+                }
+            } catch (Exception e) {
+                // Ignore silent reflection errors
+            }
         }
     }
 
