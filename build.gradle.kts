@@ -37,7 +37,7 @@ dependencies {
     compileOnly(files("/home/sayan/IdeaProjects/LandClaimPlugin/target/LandClaimPlugin-2.0.1.jar"))
 
     // FastBoard (compile and shadow)
-    implementation("fr.mrmicky:fastboard:2.1.3")
+    implementation("fr.mrmicky:fastboard:2.1.5")
 
     // Commands (Cloud V2)
     implementation("org.incendo:cloud-paper:2.0.0-beta.10")
