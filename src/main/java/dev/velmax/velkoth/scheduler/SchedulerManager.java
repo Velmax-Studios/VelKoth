@@ -79,7 +79,16 @@ public final class SchedulerManager {
     }
 
     private long calculateDelayMs(ScheduleEntry entry) {
-        LocalDateTime now = LocalDateTime.now();
+        ZoneId zoneId;
+        try {
+            zoneId = ZoneId.of(plugin.getPluginConfig().getScheduleTimezone(), ZoneId.SHORT_IDS);
+        } catch (Exception e) {
+            plugin.getLogger().warning("Invalid timezone in config: " + plugin.getPluginConfig().getScheduleTimezone()
+                    + ", falling back to system default.");
+            zoneId = ZoneId.systemDefault();
+        }
+
+        LocalDateTime now = LocalDateTime.now(zoneId);
         LocalDateTime target = now.with(TemporalAdjusters.nextOrSame(entry.dayOfWeek()))
                 .withHour(entry.hour())
                 .withMinute(entry.minute())
@@ -90,7 +99,7 @@ public final class SchedulerManager {
             target = target.plusWeeks(1);
         }
 
-        long targetMs = target.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long targetMs = target.atZone(zoneId).toInstant().toEpochMilli();
         return targetMs - System.currentTimeMillis();
     }
 

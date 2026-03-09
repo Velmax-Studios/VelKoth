@@ -22,6 +22,9 @@ public class PluginConfig extends OkaeriConfig {
     @Comment("Display settings")
     private DisplaySettings display = new DisplaySettings();
 
+    @Comment({ "Timezone for scheduled events", "Examples: UTC, EST, America/New_York, Europe/London, Asia/Kolkata" })
+    private String scheduleTimezone = "UTC";
+
     @Comment({ "Scheduled events", "Format: day:HH:mm:arenaId or a cron expression" })
     private List<String> schedule = List.of(
             "SATURDAY:14:00:spawn_koth",
@@ -41,6 +44,10 @@ public class PluginConfig extends OkaeriConfig {
 
     public List<String> getSchedule() {
         return schedule;
+    }
+
+    public String getScheduleTimezone() {
+        return scheduleTimezone;
     }
 
     public static class DatabaseConfig extends OkaeriConfig {
