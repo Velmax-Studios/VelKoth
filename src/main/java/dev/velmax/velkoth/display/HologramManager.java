@@ -72,7 +72,7 @@ public class HologramManager {
     public void remove(Arena arena) {
         TextDisplay display = holograms.remove(arena);
         if (display != null && display.isValid()) {
-            display.remove();
+            display.getScheduler().run(plugin, scheduledTask -> display.remove(), null);
         }
     }
 
@@ -102,11 +102,12 @@ public class HologramManager {
             if (display == null)
                 return;
         }
-
+        
+        final TextDisplay finalDisplay = display;
         CaptureSession session = plugin.getCaptureManager().getSession(arena.id());
         if (session == null) {
             // Should not happen if game is active, but fallback
-            display.text(Component.empty());
+            finalDisplay.getScheduler().run(plugin, scheduledTask -> finalDisplay.text(Component.empty()), null);
             return;
         }
 
@@ -147,7 +148,8 @@ public class HologramManager {
             finalComponent = finalComponent.append(parsedLine);
         }
 
-        display.text(finalComponent);
+        final Component finalComp = finalComponent;
+        finalDisplay.getScheduler().run(plugin, scheduledTask -> finalDisplay.text(finalComp), null);
     }
 
     /**
