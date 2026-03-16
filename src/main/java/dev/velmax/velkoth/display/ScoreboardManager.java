@@ -30,6 +30,7 @@ public class ScoreboardManager {
 
     private final Map<UUID, Scoreboard> previousScoreboards = new ConcurrentHashMap<>();
     private Scoreboard emptyScoreboard;
+    private final boolean isFolia;
     private boolean hasTab = false;
     private Method tabGetInstance;
     private Method tabGetScoreboardManager;
@@ -38,7 +39,17 @@ public class ScoreboardManager {
 
     public ScoreboardManager(VelKothPlugin plugin) {
         this.plugin = plugin;
+        this.isFolia = checkFolia();
         initHooks();
+    }
+
+    private boolean checkFolia() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     private void initHooks() {
@@ -196,7 +207,7 @@ public class ScoreboardManager {
     }
 
     private void pauseOtherScoreboards(Player player) {
-        if (!plugin.getPluginConfig().getDisplay().isOverrideOtherScoreboards())
+        if (isFolia || !plugin.getPluginConfig().getDisplay().isOverrideOtherScoreboards())
             return;
 
         // Bukkit Dummy Scoreboard Overriding (Handles SimpleScore and most plugins)
@@ -226,7 +237,7 @@ public class ScoreboardManager {
     }
 
     private void resumeOtherScoreboards(Player player) {
-        if (!plugin.getPluginConfig().getDisplay().isOverrideOtherScoreboards())
+        if (isFolia || !plugin.getPluginConfig().getDisplay().isOverrideOtherScoreboards())
             return;
 
         // Restore Bukkit Scoreboard
