@@ -39,9 +39,6 @@ public class HologramManager {
         if (!plugin.getPluginConfig().getDisplay().isHologramEnabled())
             return;
 
-        // Remove existing if present to avoid duplication
-        remove(arena);
-
         Location center = arena.region().getCenter();
         // Adjust Y offset as configured (e.g. +3 blocks above center)
         center.add(0, plugin.getPluginConfig().getDisplay().getHologramYOffset(), 0);
@@ -49,19 +46,26 @@ public class HologramManager {
         if (center.getWorld() == null)
             return;
 
-        TextDisplay display = center.getWorld().spawn(center, TextDisplay.class, entity -> {
-            entity.setBillboard(Display.Billboard.CENTER);
-            entity.setShadowed(true); // User requested true
-            entity.setDefaultBackground(false);
-            entity.setViewRange(32f);
-            entity.setAlignment(TextDisplay.TextAlignment.CENTER);
+        Bukkit.getRegionScheduler().run(plugin, center, task -> {
+            // Remove existing if present to avoid duplication inside the regional thread
+            TextDisplay existing = holograms.get(arena);
+            if (existing != null && existing.isValid()) {
+                existing.remove();
+            }
 
-            // Set initial state
-            entity.text(Component.empty());
+            TextDisplay display = center.getWorld().spawn(center, TextDisplay.class, entity -> {
+                entity.setBillboard(Display.Billboard.CENTER);
+                entity.setShadowed(true); // User requested true
+                entity.setDefaultBackground(false);
+                entity.setViewRange(32f);
+                entity.setAlignment(TextDisplay.TextAlignment.CENTER);
+
+                // Set initial state
+                entity.text(Component.empty());
+            });
+
+            holograms.put(arena, display);
         });
-
-        holograms.put(arena, display);
-        update(arena); // Initial render
     }
 
     /**
@@ -98,9 +102,7 @@ public class HologramManager {
         if (display == null || !display.isValid()) {
             // If invalid (e.g. chunk unloaded and entity lost somehow), respawn it
             spawn(arena);
-            display = holograms.get(arena);
-            if (display == null)
-                return;
+            return;
         }
         
         final TextDisplay finalDisplay = display;

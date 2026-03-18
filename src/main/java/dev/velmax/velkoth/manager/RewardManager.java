@@ -25,7 +25,7 @@ public final class RewardManager {
         player.getScheduler().run(plugin, task -> {
             for (Reward reward : rewards) {
                 try {
-                    reward.grant(player);
+                    reward.grant(player, plugin);
                 } catch (Exception e) {
                     plugin.getLogger().warning("Failed to grant reward '" + reward.describe()
                             + "' to " + player.getName() + ": " + e.getMessage());

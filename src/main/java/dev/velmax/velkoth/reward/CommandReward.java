@@ -1,5 +1,6 @@
 package dev.velmax.velkoth.reward;
 
+import dev.velmax.velkoth.VelKothPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -9,9 +10,10 @@ import org.bukkit.entity.Player;
 public record CommandReward(String command) implements Reward {
 
     @Override
-    public void grant(Player player) {
+    public void grant(Player player, VelKothPlugin plugin) {
         String parsed = command.replace("%player%", player.getName());
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
+        Bukkit.getGlobalRegionScheduler().run(plugin, task -> 
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed));
     }
 
     @Override

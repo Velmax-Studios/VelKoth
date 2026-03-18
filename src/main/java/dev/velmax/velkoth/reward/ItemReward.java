@@ -1,5 +1,6 @@
 package dev.velmax.velkoth.reward;
 
+import dev.velmax.velkoth.VelKothPlugin;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -9,7 +10,7 @@ import org.bukkit.inventory.ItemStack;
 public record ItemReward(ItemStack item) implements Reward {
 
     @Override
-    public void grant(Player player) {
+    public void grant(Player player, VelKothPlugin plugin) {
         var leftover = player.getInventory().addItem(item.clone());
         // Drop any items that didn't fit
         leftover.values().forEach(drop -> player.getWorld().dropItemNaturally(player.getLocation(), drop));

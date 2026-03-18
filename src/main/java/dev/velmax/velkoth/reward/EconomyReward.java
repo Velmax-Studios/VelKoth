@@ -1,5 +1,6 @@
 package dev.velmax.velkoth.reward;
 
+import dev.velmax.velkoth.VelKothPlugin;
 import dev.velmax.velkoth.hook.VaultHook;
 import org.bukkit.entity.Player;
 
@@ -9,7 +10,7 @@ import org.bukkit.entity.Player;
 public record EconomyReward(double amount) implements Reward {
 
     @Override
-    public void grant(Player player) {
+    public void grant(Player player, VelKothPlugin plugin) {
         VaultHook.deposit(player, amount);
     }
 
