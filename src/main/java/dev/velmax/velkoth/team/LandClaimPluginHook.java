@@ -1,23 +1,22 @@
 package dev.velmax.velkoth.team;
 
 import dev.velmax.velkoth.VelKothPlugin;
-import org.ayosynk.landClaimPlugin.LandClaimPlugin;
-import org.ayosynk.landClaimPlugin.managers.ClaimManager;
-import org.ayosynk.landClaimPlugin.models.ClaimProfile;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Method;
 import java.util.UUID;
 
 public class LandClaimPluginHook implements TeamHook {
 
     private final VelKothPlugin plugin;
     private boolean isAvailable = false;
+    private Class<?> landClaimPluginClass;
 
     public LandClaimPluginHook(VelKothPlugin plugin) {
         this.plugin = plugin;
         try {
-            Class.forName("org.ayosynk.landClaimPlugin.LandClaimPlugin");
+            landClaimPluginClass = Class.forName("org.ayosynk.landClaimPlugin.LandClaimPlugin");
             isAvailable = true;
         } catch (ClassNotFoundException e) {
             isAvailable = false;
@@ -30,8 +29,11 @@ public class LandClaimPluginHook implements TeamHook {
             return false;
 
         try {
-            LandClaimPlugin lcp = LandClaimPlugin.getInstance();
-            ClaimManager cm = lcp.getClaimManager();
+            Method getInstanceMethod = landClaimPluginClass.getMethod("getInstance");
+            Object lcp = getInstanceMethod.invoke(null);
+            
+            Method getClaimManagerMethod = landClaimPluginClass.getMethod("getClaimManager");
+            Object cm = getClaimManagerMethod.invoke(lcp);
 
             UUID id1 = getEffectiveProfileOwner(p1.getUniqueId(), cm);
             UUID id2 = getEffectiveProfileOwner(p2.getUniqueId(), cm);
@@ -49,14 +51,19 @@ public class LandClaimPluginHook implements TeamHook {
             return null;
 
         try {
-            LandClaimPlugin lcp = LandClaimPlugin.getInstance();
-            ClaimManager cm = lcp.getClaimManager();
+            Method getInstanceMethod = landClaimPluginClass.getMethod("getInstance");
+            Object lcp = getInstanceMethod.invoke(null);
+            
+            Method getClaimManagerMethod = landClaimPluginClass.getMethod("getClaimManager");
+            Object cm = getClaimManagerMethod.invoke(lcp);
 
             UUID ownerId = getEffectiveProfileOwner(player.getUniqueId(), cm);
             if (ownerId != null) {
-                ClaimProfile profile = cm.getProfile(ownerId);
+                Method getProfileMethod = cm.getClass().getMethod("getProfile", UUID.class);
+                Object profile = getProfileMethod.invoke(cm, ownerId);
                 if (profile != null) {
-                    return profile.getName();
+                    Method getNameMethod = profile.getClass().getMethod("getName");
+                    return (String) getNameMethod.invoke(profile);
                 }
             }
         } catch (Exception e) {
@@ -65,31 +72,35 @@ public class LandClaimPluginHook implements TeamHook {
         return null;
     }
 
-    private @Nullable UUID getEffectiveProfileOwner(UUID playerUuid, ClaimManager cm) {
-        // First check if they own a profile
-        ClaimProfile ownProfile = cm.getProfile(playerUuid);
-        if (ownProfile != null) {
-            return ownProfile.getOwnerId();
-        }
-
-        // They might be a member/trusted in another active profile.
-        // We iterate loaded profiles in ClaimManager (since they are cached).
+    private @Nullable UUID getEffectiveProfileOwner(UUID playerUuid, Object cm) {
         try {
-            // Since there's no direct API to get a profile by member, we just check all
-            // cached profiles
-            // This is O(N) but the cache is typically small for active players.
-            java.lang.reflect.Field profilesField = cm.getClass().getDeclaredField("profilesCache");
-            profilesField.setAccessible(true);
-            java.util.Map<UUID, ClaimProfile> cache = (java.util.Map<UUID, ClaimProfile>) profilesField.get(cm);
-
-            for (ClaimProfile p : cache.values()) {
-                if (p.isMember(playerUuid) || p.isTrusted(playerUuid)) {
-                    return p.getOwnerId();
-                }
+            // First check if they own a profile
+            Method getProfileMethod = cm.getClass().getMethod("getProfile", UUID.class);
+            Object ownProfile = getProfileMethod.invoke(cm, playerUuid);
+            
+            if (ownProfile != null) {
+                Method getOwnerIdMethod = ownProfile.getClass().getMethod("getOwnerId");
+                return (UUID) getOwnerIdMethod.invoke(ownProfile);
             }
 
-            // Note: If they are offline, they might not be cached, but participants are
-            // online.
+            // They might be a member/trusted in another active profile.
+            // We iterate loaded profiles in ClaimManager (since they are cached).
+            java.lang.reflect.Field profilesField = cm.getClass().getDeclaredField("profilesCache");
+            profilesField.setAccessible(true);
+            java.util.Map<UUID, Object> cache = (java.util.Map<UUID, Object>) profilesField.get(cm);
+
+            for (Object p : cache.values()) {
+                Method isMemberMethod = p.getClass().getMethod("isMember", UUID.class);
+                Method isTrustedMethod = p.getClass().getMethod("isTrusted", UUID.class);
+                
+                boolean isMember = (boolean) isMemberMethod.invoke(p, playerUuid);
+                boolean isTrusted = (boolean) isTrustedMethod.invoke(p, playerUuid);
+                
+                if (isMember || isTrusted) {
+                    Method getOwnerIdMethod = p.getClass().getMethod("getOwnerId");
+                    return (UUID) getOwnerIdMethod.invoke(p);
+                }
+            }
         } catch (Exception e) {
             // Ignore reflection errors on private maps if version changed
         }
