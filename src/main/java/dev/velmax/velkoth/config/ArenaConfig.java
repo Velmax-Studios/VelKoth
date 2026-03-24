@@ -27,14 +27,24 @@ public class ArenaConfig extends OkaeriConfig {
         private String displayName = "KoTH Arena";
         private String world = "world";
 
-        @Comment("Region type: CUBOID or CYLINDER")
+        @Comment({
+                "Region type for the hill:",
+                "CUBOID: A box defined by two corner points (pos1 and pos2).",
+                "CYLINDER: A circular area defined by a center, radius, and height (minY to maxY)."
+        })
         private String regionType = "CUBOID";
 
-        @Comment("For CUBOID: [x, y, z]")
+        @Comment("For CUBOID: The first corner point of the capture zone [x, y, z]")
         private List<Double> pos1 = List.of(100.0, 64.0, 100.0);
+        @Comment("For CUBOID: The second (opposite) corner point of the capture zone [x, y, z]")
         private List<Double> pos2 = List.of(110.0, 70.0, 110.0);
 
-        @Comment("For CYLINDER: centerX, centerZ, radius, minY, maxY")
+        @Comment({
+                "For CYLINDER: The settings for circular capture zones.",
+                "centerX/centerZ: The midpoint of the circle.",
+                "radius: How far from the center the zone extends.",
+                "minY/maxY: The bottom and top height limits of the zone."
+        })
         private double centerX = 0;
         private double centerZ = 0;
         private double radius = 10;
@@ -53,7 +63,11 @@ public class ArenaConfig extends OkaeriConfig {
         @Comment("Grace period in seconds")
         private int gracePeriod = 5;
 
-        @Comment({ "Reward commands executed on win", "%player% is replaced with the winner's name" })
+        @Comment({
+                "Reward commands executed when a player/team wins the KoTH.",
+                "Use %player% to target the winning player.",
+                "Example commands: 'give %player% diamond 3', 'eco give %player% 500'"
+        })
         private List<String> rewards = List.of(
                 "give %player% diamond 3",
                 "eco give %player% 500");

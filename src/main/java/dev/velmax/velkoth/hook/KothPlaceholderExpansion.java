@@ -43,29 +43,65 @@ public class KothPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
-        var activeArenas = plugin.getArenaManager().getActiveArenas();
-        if (activeArenas.isEmpty()) {
-            return switch (params.toLowerCase()) {
-                case "arena" -> "None";
-                case "time" -> "0";
-                case "owner" -> "None";
-                case "players" -> "0";
+        String[] parts = params.toLowerCase().split("_");
+        if (parts.length == 0) return null;
+
+        boolean isNext = parts[0].equals("next");
+        int offset = isNext ? 1 : 0;
+        
+        if (parts.length <= offset) return null;
+        String type = parts[offset];
+        
+        // Potential arenaId is the last part if there are more parts than expected for type
+        String arenaId = null;
+        if (parts.length > offset + 1) {
+            // Check if parts[parts.length-1] is a placeholder type or an arena ID
+            String last = parts[parts.length - 1];
+            if (!last.equals("formatted")) {
+                arenaId = last;
+            }
+        }
+
+        if (isNext) {
+            var scheduler = plugin.getSchedulerManager();
+            var entry = (arenaId != null) ? scheduler.getNextEntry(arenaId) : scheduler.getNextEntry();
+            
+            if (entry == null) return "N/A";
+
+            long delaySeconds = scheduler.calculateDelayMs(entry) / 1000;
+            return switch (type) {
+                case "arena" -> {
+                    Arena arena = plugin.getArenaManager().getArena(entry.arenaId());
+                    yield arena != null ? arena.displayName() : entry.arenaId();
+                }
+                case "time" -> {
+                    if (params.contains("_formatted")) yield formatNextTime(delaySeconds);
+                    yield String.valueOf(delaySeconds);
+                }
                 default -> null;
             };
         }
 
-        // Use the first active arena by default
-        Arena arena = activeArenas.iterator().next();
-        CaptureSession session = plugin.getCaptureManager().getSession(arena.id());
+        // Active arena placeholders
+        var activeArenas = plugin.getArenaManager().getActiveArenas();
+        Arena arena = null;
+        if (arenaId != null) {
+            arena = plugin.getArenaManager().getArena(arenaId);
+            if (arena == null || arena.state() != Arena.ArenaState.ACTIVE) return "N/A";
+        } else {
+            if (activeArenas.isEmpty()) return "None";
+            arena = activeArenas.iterator().next();
+        }
 
-        return switch (params.toLowerCase()) {
+        CaptureSession session = plugin.getCaptureManager().getSession(arena.id());
+        int remaining = (session != null) ? (arena.captureTime() - session.elapsedSeconds()) : arena.captureTime();
+        remaining = Math.max(0, remaining);
+
+        return switch (type) {
             case "arena" -> arena.displayName();
             case "time" -> {
-                if (session != null) {
-                    int remaining = arena.captureTime() - session.elapsedSeconds();
-                    yield String.valueOf(Math.max(0, remaining));
-                }
-                yield String.valueOf(arena.captureTime());
+                if (params.contains("_formatted")) yield formatTime(remaining);
+                yield String.valueOf(remaining);
             }
             case "owner" -> {
                 if (session != null && session.capturingPlayer() != null) {
@@ -82,5 +118,30 @@ public class KothPlaceholderExpansion extends PlaceholderExpansion {
             }
             default -> null;
         };
+    }
+
+    private String formatTime(long seconds) {
+        long h = seconds / 3600;
+        long m = (seconds % 3600) / 60;
+        long s = seconds % 60;
+        if (h > 0) {
+            return String.format("%02d:%02d:%02d", h, m, s);
+        } else {
+            return String.format("%02d:%02d", m, s);
+        }
+    }
+
+    private String formatNextTime(long seconds) {
+        long d = seconds / 86400;
+        long h = (seconds % 86400) / 3600;
+        long m = (seconds % 3600) / 60;
+        long s = seconds % 60;
+        
+        StringBuilder sb = new StringBuilder();
+        if (d > 0) sb.append(String.format("%02dd ", d));
+        if (d > 0 || h > 0) sb.append(String.format("%02dh ", h));
+        if (d > 0 || h > 0 || m > 0) sb.append(String.format("%02dm ", m));
+        sb.append(String.format("%02ds", s));
+        return sb.toString();
     }
 }

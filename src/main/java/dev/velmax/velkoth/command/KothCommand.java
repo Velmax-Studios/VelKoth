@@ -7,7 +7,6 @@ import dev.velmax.velkoth.config.PluginConfig;
 import dev.velmax.velkoth.manager.WandManager;
 import org.incendo.cloud.paper.util.sender.Source;
 import org.incendo.cloud.paper.util.sender.PlayerSource;
-import org.incendo.cloud.paper.util.sender.ConsoleSource;
 import org.incendo.cloud.paper.util.sender.PaperSimpleSenderMapper;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -22,10 +21,14 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.incendo.cloud.execution.ExecutionCoordinator;
 import org.incendo.cloud.paper.PaperCommandManager;
+import org.incendo.cloud.parser.standard.EnumParser;
+import org.incendo.cloud.parser.standard.IntegerParser;
 import org.incendo.cloud.parser.standard.StringParser;
 import org.incendo.cloud.suggestion.Suggestion;
 import org.incendo.cloud.suggestion.SuggestionProvider;
+import org.jetbrains.annotations.Nullable;
 
+import java.time.DayOfWeek;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -112,6 +115,24 @@ public final class KothCommand {
         manager.command(base.literal("reload")
                 .permission("velkoth.admin")
                 .handler(ctx -> handleReload(ctx.sender().source())));
+
+        // ── Schedule ──
+        var scheduleBuilder = base.literal("schedule").permission("velkoth.admin");
+
+        manager.command(scheduleBuilder.literal("add")
+                .required("day", EnumParser.enumParser(DayOfWeek.class))
+                .required("time", StringParser.quotedStringParser(), (ctx, input) -> CompletableFuture.completedFuture(
+                        List.of("\"00:00\"", "\"06:00\"", "\"12:00\"", "\"15:00\"", "\"18:00\"", "\"21:00\"")
+                                .stream().map(Suggestion::suggestion).toList()))
+                .required("arena", StringParser.stringParser(), arenaSuggestions)
+                .handler(ctx -> handleScheduleAdd(ctx.sender().source(), ctx.get("day"), ctx.get("time"), ctx.get("arena"))));
+
+        manager.command(scheduleBuilder.literal("list")
+                .handler(ctx -> handleScheduleList(ctx.sender().source())));
+
+        manager.command(scheduleBuilder.literal("remove")
+                .required("index", IntegerParser.integerParser())
+                .handler(ctx -> handleScheduleRemove(ctx.sender().source(), ctx.get("index"))));
     }
 
     // ── Create ──
@@ -314,6 +335,54 @@ public final class KothCommand {
         });
     }
 
+    // ── Schedule ──
+
+    private void handleScheduleAdd(CommandSender sender, DayOfWeek day, String timeStr, String arenaId) {
+        try {
+            String[] timeParts = timeStr.split(":");
+            if (timeParts.length != 2) {
+                sendPrefixed(sender, "<red>Invalid time format. Use HH:mm (e.g., 14:00)");
+                return;
+            }
+            int hour = Integer.parseInt(timeParts[0]);
+            int minute = Integer.parseInt(timeParts[1]);
+
+            if (!arenaId.equalsIgnoreCase("random") && !plugin.getArenaManager().arenaExists(arenaId)) {
+                sendPrefixed(sender, plugin.getMessages().getArenaNotFound().replace("<arena>", arenaId));
+                return;
+            }
+
+            dev.velmax.velkoth.scheduler.ScheduleEntry entry = new dev.velmax.velkoth.scheduler.ScheduleEntry(day, hour, minute, arenaId);
+            plugin.getSchedulerManager().addScheduleEntry(entry);
+            sendPrefixed(sender, "<green>Added <gold>" + arenaId + "</gold> to the schedule on <gold>" + day + "</gold> at <gold>" + timeStr + "</gold>.");
+        } catch (Exception e) {
+            sendPrefixed(sender, "<red>Error adding schedule entry: " + e.getMessage());
+        }
+    }
+
+    private void handleScheduleList(CommandSender sender) {
+        var entries = plugin.getSchedulerManager().getEntries();
+        if (entries.isEmpty()) {
+            sendPrefixed(sender, "<gray>No events scheduled.");
+            return;
+        }
+
+        sendPrefixed(sender, "<gold><bold>KoTH Schedule</bold></gold>");
+        for (int i = 0; i < entries.size(); i++) {
+            var entry = entries.get(i);
+            String timeStr = String.format("%02d:%02d", entry.hour(), entry.minute());
+            sendPrefixed(sender, " <dark_gray>[" + i + "]</dark_gray> <gold>" + entry.dayOfWeek() + "</gold> at <green>" + timeStr + "</green> - <yellow>" + entry.arenaId() + "</yellow>");
+        }
+    }
+
+    private void handleScheduleRemove(CommandSender sender, int index) {
+        if (plugin.getSchedulerManager().removeScheduleEntry(index)) {
+            sendPrefixed(sender, "<green>Removed schedule entry at index <gold>" + index + "</gold>.");
+        } else {
+            sendPrefixed(sender, "<red>Invalid schedule index: " + index);
+        }
+    }
+
     // ── Reload ──
 
     private void handleReload(CommandSender sender) {
@@ -338,6 +407,11 @@ public final class KothCommand {
                 " <gold>/koth next <name></gold> <dark_gray>-</dark_gray> <gray>Check when an arena starts next");
         sendPrefixed(sender, " <gold>/koth stats</gold> <dark_gray>-</dark_gray> <gray>View your stats");
         sendPrefixed(sender, " <gold>/koth reload</gold> <dark_gray>-</dark_gray> <gray>Reload configuration");
+        sendPrefixed(sender, "");
+        sendPrefixed(sender, "<gold><bold>Schedule Commands</bold></gold>");
+        sendPrefixed(sender, " <gold>/koth schedule add <day> <time> <arena></gold>");
+        sendPrefixed(sender, " <gold>/koth schedule list</gold>");
+        sendPrefixed(sender, " <gold>/koth schedule remove <index></gold>");
     }
 
     // ── Helpers ──

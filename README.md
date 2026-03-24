@@ -15,9 +15,10 @@ VelKoth supports multiple capture modes (`CAPTURE` and `SCORE`), O(1) mathematic
 - **Advanced Display Visuals**: Leverages modern Paper Adventure API to push ActionBars, custom BossBars, on-screen Titles, Particle effects, and Sounds. Includes **FastBoard-powered Scoreboards** (with smart-overrides for plugins like TAB and SimpleScore) and native **Paper TextDisplay Holograms** that are fully chunk-safe.
 - **Robust Storage System**: Fully asynchronous SQLite/MySQL HikariCP connection pooling storing player total wins, daily wins, and weekly wins.
 - **bStats Metrics Integration**: Uses anonymous metrics tracking to keep developers informed on adoption rates and usage.
-- **Scheduler Intergration**: Define exactly when specific arenas should run via Cron-like syntax (eg. every Saturday at 14:30) with optional random arena selection.
+- **Scheduler Integration**: Define exactly when specific arenas should run via Cron-like syntax or simple time formats. Now supports **Dynamic Scheduling** via in-game commands.
 - **Dynamic Configuration**: Built on Okaeri Configs for instant YAML hot-reloading. Every system message, GUI layout, and internal setting can be modified.
 - **Comprehensive Rewards**: Execute commands, distribute ItemStacks (with overflow drop handling), or give Vault Economy money to the winners.
+- **Enhanced PlaceholderAPI**: Comprehensive support for multi-arena events, absolute/specific next event countdowns, and human-readable time formatting.
 - **Developer API**: Features a full suite of Bukkit Events (`KothStartEvent`, `KothWinEvent`, `KothCaptureStartEvent`, etc.) and a static `VelKothAPI` state accessor for developers.
 
 ---
@@ -27,7 +28,10 @@ VelKoth supports multiple capture modes (`CAPTURE` and `SCORE`), O(1) mathematic
 - **PaperMC** 1.21.x+
 - **Java 21**
 - [Vault](https://www.spigotmc.org/resources/vault.34315/) *(Optional - Required for Economy rewards)*
-- [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) *(Optional - Exposes `%koth_arena%`, `%koth_time%`, `%koth_owner%`, `%koth_players%`)*
+- [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) *(Optional - Exposes extensive placeholders)*
+  - `%koth_arena[_<id>]%`, `%koth_time[_formatted][_<id>]%`
+  - `%koth_owner[_<id>]%`, `%koth_players[_<id>]%`
+  - `%koth_next_arena[_<id>]%`, `%koth_next_time[_formatted][_<id>]%`
 - **Supported Team Plugins** *(Optional - Allows team members to capture together)*
   - BetterTeams, Factions (UUID/Saber), GangsPlus, Guilds, KingdomsX
   - SuperiorSkyblock2, Towny Advanced, UltimateClans, Parties, AxParties
@@ -70,6 +74,9 @@ VelKoth features a robust, auto-completing Brigadier command hierarchy.
 | `/koth pause <name>` | `velkoth.admin` | Pause an active capture session |
 | `/koth resume <name>` | `velkoth.admin` | Resume a paused capture session |
 | `/koth stop <name>` | `velkoth.admin` | Stop an active arena prematurely |
+| `/koth schedule add <day> <time> <arena>` | `velkoth.admin` | Add a new event to the automated schedule |
+| `/koth schedule list` | `velkoth.admin` | View all currently scheduled events |
+| `/koth schedule remove <index>` | `velkoth.admin` | Remove a scheduled event by its list index |
 | `/koth reload` | `velkoth.admin` | Hot-reload all `.yml` configuration files |
 
 ---
@@ -82,10 +89,13 @@ VelKoth features a robust, auto-completing Brigadier command hierarchy.
 ---
 
 ## 📦 Building from Source
+
 To compile the standalone shadow JAR natively (including the Cloud command libraries and Okaeri configs):
+
 ```bash
 git clone https://github.com/YourName/VelKoth.git
 cd VelKoth
 ./gradlew clean shadowJar
 ```
+
 Your compiled plugin will be deposited in `/build/libs/`.

@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Level;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Manages automatic KoTH event scheduling.
@@ -24,6 +26,7 @@ public final class SchedulerManager {
         return t;
     });
     private final List<ScheduleEntry> entries = new ArrayList<>();
+    private final List<ScheduledFuture<?>> tasks = new CopyOnWriteArrayList<>();
 
     public SchedulerManager(VelKothPlugin plugin) {
         this.plugin = plugin;
@@ -33,7 +36,7 @@ public final class SchedulerManager {
      * Load schedule entries from config and schedule them.
      */
     public void loadSchedule() {
-        entries.clear();
+        clearSchedule();
         for (String line : plugin.getPluginConfig().getSchedule()) {
             try {
                 ScheduleEntry entry = ScheduleEntry.parse(line);
@@ -46,11 +49,17 @@ public final class SchedulerManager {
         plugin.getLogger().info("Loaded " + entries.size() + " scheduled events.");
     }
 
+    private void clearSchedule() {
+        tasks.forEach(task -> task.cancel(false));
+        tasks.clear();
+        entries.clear();
+    }
+
     private void scheduleEntry(ScheduleEntry entry) {
         long delayMs = calculateDelayMs(entry);
         long weekMs = TimeUnit.DAYS.toMillis(7);
 
-        executor.scheduleAtFixedRate(() -> {
+        ScheduledFuture<?> task = executor.scheduleAtFixedRate(() -> {
             // Must run on main thread
             plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> {
                 String arenaId = entry.arenaId();
@@ -65,6 +74,7 @@ public final class SchedulerManager {
                 }
             });
         }, delayMs, weekMs, TimeUnit.MILLISECONDS);
+        tasks.add(task);
     }
 
     private void startRandomArena() {
@@ -78,7 +88,7 @@ public final class SchedulerManager {
         }
     }
 
-    private long calculateDelayMs(ScheduleEntry entry) {
+    public long calculateDelayMs(ScheduleEntry entry) {
         ZoneId zoneId;
         try {
             zoneId = ZoneId.of(plugin.getPluginConfig().getScheduleTimezone(), ZoneId.SHORT_IDS);
@@ -105,6 +115,26 @@ public final class SchedulerManager {
 
     public void shutdown() {
         executor.shutdownNow();
+        tasks.clear();
+    }
+
+    public void addScheduleEntry(ScheduleEntry entry) {
+        List<String> current = new ArrayList<>(plugin.getPluginConfig().getSchedule());
+        String line = entry.dayOfWeek().name() + ":" + String.format("%02d:%02d:", entry.hour(), entry.minute()) + entry.arenaId();
+        current.add(line);
+        plugin.getPluginConfig().setSchedule(current);
+        plugin.getPluginConfig().save();
+        loadSchedule();
+    }
+
+    public boolean removeScheduleEntry(int index) {
+        List<String> current = new ArrayList<>(plugin.getPluginConfig().getSchedule());
+        if (index < 0 || index >= current.size()) return false;
+        current.remove(index);
+        plugin.getPluginConfig().setSchedule(current);
+        plugin.getPluginConfig().save();
+        loadSchedule();
+        return true;
     }
 
     public List<ScheduleEntry> getEntries() {
@@ -112,15 +142,41 @@ public final class SchedulerManager {
     }
 
     public Long getNextStartTime(String arenaId) {
+        ScheduleEntry entry = getNextEntry(arenaId);
+        return entry == null ? null : calculateDelayMs(entry);
+    }
+
+    /**
+     * @return The next scheduled entry for any arena, or null if none.
+     */
+    public @Nullable ScheduleEntry getNextEntry() {
+        ScheduleEntry next = null;
+        long minDelay = -1;
+        for (ScheduleEntry entry : entries) {
+            long delay = calculateDelayMs(entry);
+            if (minDelay == -1 || delay < minDelay) {
+                minDelay = delay;
+                next = entry;
+            }
+        }
+        return next;
+    }
+
+    /**
+     * @return The next scheduled entry for a specific arena, or null if none.
+     */
+    public @Nullable ScheduleEntry getNextEntry(String arenaId) {
+        ScheduleEntry next = null;
         long minDelay = -1;
         for (ScheduleEntry entry : entries) {
             if (entry.arenaId().equalsIgnoreCase(arenaId)) {
                 long delay = calculateDelayMs(entry);
                 if (minDelay == -1 || delay < minDelay) {
                     minDelay = delay;
+                    next = entry;
                 }
             }
         }
-        return minDelay == -1 ? null : minDelay;
+        return next;
     }
 }

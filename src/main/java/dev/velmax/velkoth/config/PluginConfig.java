@@ -13,7 +13,11 @@ import java.util.Map;
 @Names(strategy = NameStrategy.HYPHEN_CASE, modifier = NameModifier.TO_LOWER_CASE)
 public class PluginConfig extends OkaeriConfig {
 
-    @Comment("Database configuration")
+    @Comment({
+            "Database configuration",
+            "SQLITE: Local file storage (standard for single servers)",
+            "MYSQL: Recommended for database synchronization across multiple bungee/velocity servers."
+    })
     private DatabaseConfig database = new DatabaseConfig();
 
     @Comment("Default capture settings for new arenas")
@@ -22,7 +26,12 @@ public class PluginConfig extends OkaeriConfig {
     @Comment("Display settings")
     private DisplaySettings display = new DisplaySettings();
 
-    @Comment({ "Timezone for scheduled events", "Examples: UTC, EST, America/New_York, Europe/London, Asia/Kolkata" })
+    @Comment({
+            "Timezone for scheduled events.",
+            "Use a region-based ID (e.g., 'Europe/Paris' or 'America/New_York') for automatic Daylight Saving Time (DST) adjustment.",
+            "Use a fixed offset (e.g., 'GMT+2' or '+02:00') if you want the schedule to stay the same all year round.",
+            "Examples: UTC, EST, America/New_York, Europe/London, Asia/Kolkata, GMT+2"
+    })
     private String scheduleTimezone = "UTC";
 
     @Comment({ "Scheduled events", "Format: day:HH:mm:arenaId or a cron expression" })
@@ -44,6 +53,10 @@ public class PluginConfig extends OkaeriConfig {
 
     public List<String> getSchedule() {
         return schedule;
+    }
+
+    public void setSchedule(List<String> schedule) {
+        this.schedule = schedule;
     }
 
     public String getScheduleTimezone() {
@@ -100,7 +113,11 @@ public class PluginConfig extends OkaeriConfig {
         @Comment("Grace period in seconds before capture resets when player leaves")
         private int gracePeriod = 5;
 
-        @Comment("Default capture mode: CAPTURE or SCORE")
+        @Comment({
+                "Default capture mode for the hill:",
+                "CAPTURE: Traditional mode where players must stay on the hill until it turns their color.",
+                "SCORE: Points-based mode where teams earn score over time while holding the hill."
+        })
         private String captureMode = "CAPTURE";
 
         @Comment("Default max score for SCORE mode")
@@ -156,7 +173,8 @@ public class PluginConfig extends OkaeriConfig {
         private boolean showIdleScoreboard = false;
 
         @Comment({
-                "If true, VelKoth will attempt to pause other scoreboard plugins (like TAB or SimpleScore) while an event is active."
+                "If true, VelKoth will attempt to pause other scoreboard plugins (like TAB or SimpleScore) while an event is active.",
+                "This ensures there are no flickering issues when VelKoth takes over the player's scoreboard."
         })
         private boolean overrideOtherScoreboards = true;
 
