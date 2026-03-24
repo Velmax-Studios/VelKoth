@@ -3,6 +3,7 @@ name: Build VelKoth
 on:
   push:
     branches: ["main"]
+  pull_request:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -11,34 +12,38 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
 
-    - name: Setup Java
-      uses: actions/setup-java@v5
-      with:
-        distribution: temurin
-        java-version: '21'
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
 
-    - name: Make gradlew executable
-      run: chmod +x gradlew
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
-    - name: Build
-      run: ./gradlew build
+      - name: Build
+        run: ./gradlew build
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v5
-      with:
-        name: VelKoth-dev-${{ github.run_number }}
-        path: build/libs/*.jar
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: VelKoth-dev-${{ github.run_number }}
+          path: build/libs/*.jar
 
-    - name: Create Dev Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: dev-${{ github.run_number }}
-        name: Dev Build ${{ github.run_number }}
-        prerelease: true
-        files: build/libs/*.jar
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Dev Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-${{ github.run_number }}
+          name: Dev Build ${{ github.run_number }}
+          prerelease: true
+          files: build/libs/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
