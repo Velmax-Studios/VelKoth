@@ -3,7 +3,9 @@ name: Build VelKoth
 on:
   push:
     branches: ["main"]
-  pull_request:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -11,10 +13,10 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Java
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: temurin
         java-version: '21'
@@ -25,8 +27,18 @@ jobs:
     - name: Build
       run: ./gradlew build
 
-    - name: Upload VelKoth JAR
-      uses: actions/upload-artifact@v4
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v5
       with:
-        name: VelKoth
+        name: VelKoth-dev-${{ github.run_number }}
         path: build/libs/*.jar
+
+    - name: Create Dev Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: dev-${{ github.run_number }}
+        name: Dev Build ${{ github.run_number }}
+        prerelease: true
+        files: build/libs/*.jar
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
