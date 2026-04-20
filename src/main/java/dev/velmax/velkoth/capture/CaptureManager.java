@@ -211,7 +211,8 @@ public final class CaptureManager {
                 }
             }
             case SCORE -> {
-                int score = session.addScore(playerUuid, 1);
+                String identifier = getScoreIdentifier(player);
+                int score = session.addScore(identifier, 1);
                 session.incrementElapsed();
                 for (Player p : allTeamPlayers) {
                     plugin.getDisplayManager().sendActionBar(p, arena, session);
@@ -261,14 +262,24 @@ public final class CaptureManager {
         // Broadcast win
         plugin.getDisplayManager().broadcast(
                 plugin.getMessages().getCaptureWin(), arena, winner);
-        plugin.getDisplayManager().showWinTitle(winner, arena);
-        plugin.getDisplayManager().playWinSound();
 
-        // Grant rewards
-        plugin.getRewardManager().grantRewards(winner, arena.rewards());
-
-        // Record stats
-        plugin.getStatsManager().recordWin(winner.getUniqueId(), winner.getName(), arena.id());
+        // Grant rewards and record stats (team-aware)
+        String teamName = plugin.getTeamManager().getTeamName(winner);
+        if (teamName != null) {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (plugin.getTeamManager().isSameTeam(winner, p)) {
+                    plugin.getRewardManager().grantRewards(p, arena.rewards());
+                    plugin.getStatsManager().recordWin(p.getUniqueId(), p.getName(), arena.id());
+                    plugin.getDisplayManager().showWinTitle(p, arena);
+                    plugin.getDisplayManager().playWinSound();
+                }
+            }
+        } else {
+            plugin.getRewardManager().grantRewards(winner, arena.rewards());
+            plugin.getStatsManager().recordWin(winner.getUniqueId(), winner.getName(), arena.id());
+            plugin.getDisplayManager().showWinTitle(winner, arena);
+            plugin.getDisplayManager().playWinSound();
+        }
 
         // Stop the arena
         Arena foundArena = plugin.getArenaManager().getArena(arena.id());
@@ -365,5 +376,14 @@ public final class CaptureManager {
         sessions.clear();
         plugin.getDisplayManager().getHologramManager().removeAll();
         plugin.getDisplayManager().getScoreboardManager().updateAll();
+    }
+
+    /**
+     * Gets an identifier for score tracking.
+     * Uses team name if available, otherwise player UUID.
+     */
+    private String getScoreIdentifier(Player player) {
+        String teamName = plugin.getTeamManager().getTeamName(player);
+        return (teamName != null) ? "TEAM:" + teamName : player.getUniqueId().toString();
     }
 }

@@ -18,8 +18,8 @@ public final class CaptureSession {
     private int graceTimer;
     private @Nullable UUID lastCapturer;
 
-    /** For SCORE mode: playerUUID -> accumulated points */
-    private final Map<UUID, Integer> scores = new HashMap<>();
+    /** For SCORE mode: identifier (Team Name or Player UUID) -> accumulated points */
+    private final Map<String, Integer> scores = new HashMap<>();
 
     public CaptureSession() {
         reset();
@@ -31,6 +31,7 @@ public final class CaptureSession {
         this.contested = false;
         this.graceTimer = 0;
         this.lastCapturer = null;
+        this.scores.clear();
     }
 
     public @Nullable UUID capturingPlayer() {
@@ -81,15 +82,15 @@ public final class CaptureSession {
         this.lastCapturer = lastCapturer;
     }
 
-    public Map<UUID, Integer> scores() {
+    public Map<String, Integer> scores() {
         return scores;
     }
 
-    public int addScore(UUID player, int points) {
-        return scores.merge(player, points, Integer::sum);
+    public int addScore(String identifier, int points) {
+        return scores.merge(identifier, points, Integer::sum);
     }
 
-    public int getScore(UUID player) {
-        return scores.getOrDefault(player, 0);
+    public int getScore(String identifier) {
+        return scores.getOrDefault(identifier, 0);
     }
 }
