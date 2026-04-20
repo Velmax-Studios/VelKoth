@@ -133,6 +133,29 @@ public final class KothCommand {
         manager.command(scheduleBuilder.literal("remove")
                 .required("index", IntegerParser.integerParser())
                 .handler(ctx -> handleScheduleRemove(ctx.sender().source(), ctx.get("index"))));
+
+        // ── Set ──
+        var setBuilder = base.literal("set").permission("velkoth.admin");
+
+        manager.command(setBuilder.literal("mode")
+                .required("arena", StringParser.stringParser(), arenaSuggestions)
+                .required("mode", EnumParser.enumParser(Arena.CaptureMode.class))
+                .handler(ctx -> handleSetMode(ctx.sender().source(), ctx.get("arena"), ctx.get("mode"))));
+
+        manager.command(setBuilder.literal("time")
+                .required("arena", StringParser.stringParser(), arenaSuggestions)
+                .required("seconds", IntegerParser.integerParser())
+                .handler(ctx -> handleSetTime(ctx.sender().source(), ctx.get("arena"), ctx.get("seconds"))));
+
+        manager.command(setBuilder.literal("score")
+                .required("arena", StringParser.stringParser(), arenaSuggestions)
+                .required("maxScore", IntegerParser.integerParser())
+                .handler(ctx -> handleSetScore(ctx.sender().source(), ctx.get("arena"), ctx.get("maxScore"))));
+
+        manager.command(setBuilder.literal("grace")
+                .required("arena", StringParser.stringParser(), arenaSuggestions)
+                .required("seconds", IntegerParser.integerParser())
+                .handler(ctx -> handleSetGrace(ctx.sender().source(), ctx.get("arena"), ctx.get("seconds"))));
     }
 
     // ── Create ──
@@ -383,6 +406,68 @@ public final class KothCommand {
         }
     }
 
+    // ── Set ──
+
+    private void handleSetMode(CommandSender sender, String arenaId, Arena.CaptureMode mode) {
+        Arena arena = plugin.getArenaManager().getArena(arenaId);
+        if (arena == null) {
+            sendPrefixed(sender, plugin.getMessages().getArenaNotFound().replace("<arena>", arenaId));
+            return;
+        }
+
+        arena.setCaptureMode(mode);
+        plugin.getArenaManager().saveArenas();
+        sendPrefixed(sender, plugin.getMessages().getArenaModified()
+                .replace("<arena>", arena.id())
+                .replace("<property>", "mode")
+                .replace("<value>", mode.name()));
+    }
+
+    private void handleSetTime(CommandSender sender, String arenaId, int seconds) {
+        Arena arena = plugin.getArenaManager().getArena(arenaId);
+        if (arena == null) {
+            sendPrefixed(sender, plugin.getMessages().getArenaNotFound().replace("<arena>", arenaId));
+            return;
+        }
+
+        arena.setCaptureTime(seconds);
+        plugin.getArenaManager().saveArenas();
+        sendPrefixed(sender, plugin.getMessages().getArenaModified()
+                .replace("<arena>", arena.id())
+                .replace("<property>", "time")
+                .replace("<value>", seconds + "s"));
+    }
+
+    private void handleSetScore(CommandSender sender, String arenaId, int maxScore) {
+        Arena arena = plugin.getArenaManager().getArena(arenaId);
+        if (arena == null) {
+            sendPrefixed(sender, plugin.getMessages().getArenaNotFound().replace("<arena>", arenaId));
+            return;
+        }
+
+        arena.setMaxScore(maxScore);
+        plugin.getArenaManager().saveArenas();
+        sendPrefixed(sender, plugin.getMessages().getArenaModified()
+                .replace("<arena>", arena.id())
+                .replace("<property>", "max-score")
+                .replace("<value>", String.valueOf(maxScore)));
+    }
+
+    private void handleSetGrace(CommandSender sender, String arenaId, int seconds) {
+        Arena arena = plugin.getArenaManager().getArena(arenaId);
+        if (arena == null) {
+            sendPrefixed(sender, plugin.getMessages().getArenaNotFound().replace("<arena>", arenaId));
+            return;
+        }
+
+        arena.setGracePeriod(seconds);
+        plugin.getArenaManager().saveArenas();
+        sendPrefixed(sender, plugin.getMessages().getArenaModified()
+                .replace("<arena>", arena.id())
+                .replace("<property>", "grace-period")
+                .replace("<value>", seconds + "s"));
+    }
+
     // ── Reload ──
 
     private void handleReload(CommandSender sender) {
@@ -408,10 +493,13 @@ public final class KothCommand {
         sendPrefixed(sender, " <gold>/koth stats</gold> <dark_gray>-</dark_gray> <gray>View your stats");
         sendPrefixed(sender, " <gold>/koth reload</gold> <dark_gray>-</dark_gray> <gray>Reload configuration");
         sendPrefixed(sender, "");
-        sendPrefixed(sender, "<gold><bold>Schedule Commands</bold></gold>");
-        sendPrefixed(sender, " <gold>/koth schedule add <day> <time> <arena></gold>");
-        sendPrefixed(sender, " <gold>/koth schedule list</gold>");
         sendPrefixed(sender, " <gold>/koth schedule remove <index></gold>");
+        sendPrefixed(sender, "");
+        sendPrefixed(sender, "<gold><bold>Edit Commands</bold></gold>");
+        sendPrefixed(sender, " <gold>/koth set mode <arena> <CAPTURE|SCORE></gold>");
+        sendPrefixed(sender, " <gold>/koth set time <arena> <seconds></gold>");
+        sendPrefixed(sender, " <gold>/koth set score <arena> <maxScore></gold>");
+        sendPrefixed(sender, " <gold>/koth set grace <arena> <seconds></gold>");
     }
 
     // ── Helpers ──

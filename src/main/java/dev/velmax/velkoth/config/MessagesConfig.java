@@ -136,6 +136,9 @@ public class MessagesConfig extends OkaeriConfig {
     @Comment("Sent when checking the next scheduled KoTH and there are none")
     private String noNextScheduled = "<red>There are no scheduled events for <gold><arena></gold>.";
 
+    @Comment("Arena property modified")
+    private String arenaModified = "<green>Arena <gold><arena></gold> property <yellow><property></yellow> set to <white><value></white>.";
+
     // Getters
     public String getPrefix() {
         return prefix;
@@ -283,5 +286,9 @@ public class MessagesConfig extends OkaeriConfig {
 
     public String getNoNextScheduled() {
         return noNextScheduled;
+    }
+
+    public String getArenaModified() {
+        return arenaModified;
     }
 }
