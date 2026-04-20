@@ -36,9 +36,10 @@ public record CuboidRegion(World world, double minX, double minY, double minZ,
         double x = location.getX();
         double y = location.getY();
         double z = location.getZ();
-        return x >= minX && x <= maxX
-                && y >= minY && y <= maxY
-                && z >= minZ && z <= maxZ;
+        // Use exclusive upper bounds (+1) to include the full volume of blocks at maxX/maxY/maxZ
+        return x >= minX && x < (maxX + 1.0)
+                && y >= minY && y < (maxY + 1.0)
+                && z >= minZ && z < (maxZ + 1.0);
     }
 
     @Override

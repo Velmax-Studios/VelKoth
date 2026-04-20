@@ -25,7 +25,8 @@ public record CylinderRegion(World world, double centerX, double centerZ,
         if (!location.getWorld().equals(world))
             return false;
         double y = location.getY();
-        if (y < minY || y > maxY)
+        // Use exclusive upper bounds (+1) to include the full volume of blocks at maxY
+        if (y < minY || y >= (maxY + 1.0))
             return false;
         double dx = location.getX() - centerX;
         double dz = location.getZ() - centerZ;
