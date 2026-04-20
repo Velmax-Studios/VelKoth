@@ -117,20 +117,40 @@ public class ArenaConfig extends OkaeriConfig {
             return centerX;
         }
 
+        public void setCenterX(double centerX) {
+            this.centerX = centerX;
+        }
+
         public double getCenterZ() {
             return centerZ;
+        }
+
+        public void setCenterZ(double centerZ) {
+            this.centerZ = centerZ;
         }
 
         public double getRadius() {
             return radius;
         }
 
+        public void setRadius(double radius) {
+            this.radius = radius;
+        }
+
         public double getMinY() {
             return minY;
         }
 
+        public void setMinY(double minY) {
+            this.minY = minY;
+        }
+
         public double getMaxY() {
             return maxY;
+        }
+
+        public void setMaxY(double maxY) {
+            this.maxY = maxY;
         }
 
         public int getCaptureTime() {

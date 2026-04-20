@@ -80,7 +80,7 @@ public final class CaptureManager {
      */
     public List<Player> getPlayersOnHill(Arena arena) {
         List<Player> players = new ArrayList<>();
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : arena.region().getWorld().getPlayers()) {
             if (arena.region().contains(player.getLocation())) {
                 players.add(player);
             }
@@ -165,26 +165,33 @@ public final class CaptureManager {
 
         if (!playerUuid.equals(session.capturingPlayer())) {
             // New player on the hill
+            boolean wasSameTeam = false;
             if (session.capturingPlayer() != null) {
                 Player prev = Bukkit.getPlayer(session.capturingPlayer());
                 if (prev != null) {
-                    Bukkit.getPluginManager().callEvent(
-                            new KothCaptureStopEvent(arena, prev, KothCaptureStopEvent.Reason.LEFT_HILL));
+                    if (plugin.getTeamManager().isSameTeam(prev, player)) {
+                        wasSameTeam = true;
+                    } else {
+                        Bukkit.getPluginManager().callEvent(
+                                new KothCaptureStopEvent(arena, prev, KothCaptureStopEvent.Reason.LEFT_HILL));
+                    }
                 }
             }
 
-            // Fire capture start event
-            KothCaptureStartEvent startEvent = new KothCaptureStartEvent(arena, player);
-            Bukkit.getPluginManager().callEvent(startEvent);
-            if (startEvent.isCancelled())
-                return;
+            if (!wasSameTeam) {
+                // Fire capture start event
+                KothCaptureStartEvent startEvent = new KothCaptureStartEvent(arena, player);
+                Bukkit.getPluginManager().callEvent(startEvent);
+                if (startEvent.isCancelled())
+                    return;
+
+                session.setElapsedSeconds(0);
+                plugin.getDisplayManager().playCaptureStartSound(player);
+                plugin.getDisplayManager().broadcast(
+                        plugin.getMessages().getCaptureStart(), arena, player);
+            }
 
             session.setCapturingPlayer(playerUuid);
-            session.setElapsedSeconds(0);
-
-            plugin.getDisplayManager().playCaptureStartSound(player);
-            plugin.getDisplayManager().broadcast(
-                    plugin.getMessages().getCaptureStart(), arena, player);
         }
 
         // Increment capture
@@ -235,10 +242,12 @@ public final class CaptureManager {
             }
         }
 
-        // Show contested feedback to all players on hill
-        for (Player p : players) {
-            plugin.getDisplayManager().showContestedTitle(p, arena);
-            plugin.getDisplayManager().playContestedSound(p);
+        // Show contested feedback — throttle to every 3 seconds to avoid spam
+        if (session.elapsedSeconds() % 3 == 0) {
+            for (Player p : players) {
+                plugin.getDisplayManager().showContestedTitle(p, arena);
+                plugin.getDisplayManager().playContestedSound(p);
+            }
         }
 
         // Capture timer pauses while contested — do not increment

@@ -7,9 +7,13 @@ import dev.velmax.velkoth.arena.region.CylinderRegion;
 import dev.velmax.velkoth.arena.region.Region;
 import dev.velmax.velkoth.config.ArenaConfig;
 import dev.velmax.velkoth.reward.CommandReward;
+import dev.velmax.velkoth.reward.EconomyReward;
+import dev.velmax.velkoth.reward.ItemReward;
 import dev.velmax.velkoth.reward.Reward;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,7 +43,7 @@ public final class ArenaManager {
             ArenaConfig.ArenaEntry ae = entry.getValue();
             Arena arena = deserializeArena(id, ae);
             if (arena != null) {
-                arenas.put(id, arena);
+                arenas.put(id.toLowerCase(), arena);
             }
         }
         plugin.getLogger().info("Loaded " + arenas.size() + " arenas.");
@@ -80,10 +84,27 @@ public final class ArenaManager {
         Arena arena = new Arena(id, ae.getDisplayName(), region, ae.getCaptureTime(),
                 mode, ae.getGracePeriod(), ae.getMaxScore());
 
-        // Parse rewards — all strings are treated as console commands by default
+        // Parse rewards
         List<Reward> rewards = new ArrayList<>();
-        for (String cmd : ae.getRewards()) {
-            rewards.add(new CommandReward(cmd));
+        for (String raw : ae.getRewards()) {
+            if (raw.startsWith("ECONOMY:")) {
+                try {
+                    rewards.add(new EconomyReward(Double.parseDouble(raw.substring(8))));
+                } catch (NumberFormatException ignored) {}
+            } else if (raw.startsWith("ITEM:")) {
+                String[] parts = raw.split(":");
+                if (parts.length >= 2) {
+                    Material mat = Material.matchMaterial(parts[1]);
+                    int amount = parts.length >= 3 ? Integer.parseInt(parts[2]) : 1;
+                    if (mat != null) {
+                        rewards.add(new ItemReward(new ItemStack(mat, amount)));
+                    }
+                }
+            } else if (raw.startsWith("COMMAND:")) {
+                rewards.add(new CommandReward(raw.substring(8)));
+            } else {
+                rewards.add(new CommandReward(raw));
+            }
         }
         arena.setRewards(rewards);
 
@@ -109,14 +130,22 @@ public final class ArenaManager {
             }
             case CylinderRegion cylinder -> {
                 ae.setRegionType("CYLINDER");
+                ae.setCenterX(cylinder.centerX());
+                ae.setCenterZ(cylinder.centerZ());
+                ae.setRadius(cylinder.radius());
+                ae.setMinY(cylinder.minY());
+                ae.setMaxY(cylinder.maxY());
             }
         }
 
         // Serialize rewards as command strings
         List<String> rewardStrings = new ArrayList<>();
         for (Reward r : arena.rewards()) {
-            if (r instanceof CommandReward cr) {
-                rewardStrings.add(cr.command());
+            switch (r) {
+                case CommandReward cr -> rewardStrings.add("COMMAND:" + cr.command());
+                case EconomyReward er -> rewardStrings.add("ECONOMY:" + er.amount());
+                case ItemReward ir ->
+                    rewardStrings.add("ITEM:" + ir.item().getType().name() + ":" + ir.item().getAmount());
             }
         }
         ae.setRewards(rewardStrings);
