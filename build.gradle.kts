@@ -42,8 +42,8 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.1.0")
 
     // Commands (Cloud V2)
-    implementation("org.incendo:cloud-paper:2.0.0-beta.10")
-    implementation("org.incendo:cloud-minecraft-extras:2.0.0-beta.10")
+    implementation("org.incendo:cloud-paper:2.0.0-beta.15")
+    implementation("org.incendo:cloud-minecraft-extras:2.0.0-beta.15")
 }
 
 tasks {
