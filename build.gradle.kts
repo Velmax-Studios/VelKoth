@@ -36,7 +36,7 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.11.6")
 
     // FastBoard (compile and shadow)
-    implementation("fr.mrmicky:fastboard:2.1.5")
+    implementation("fr.mrmicky:fastboard:2.2.2")
 
     // bStats (compile and shadow)
     implementation("org.bstats:bstats-bukkit:3.1.0")
